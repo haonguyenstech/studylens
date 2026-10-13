@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "src/renderer/index.html"
+        ],
+        "createdAt": "2026-10-13T16:23:36.531Z",
+        "reason": "Claude: only hit is .seg, a macOS-style segmented control (matches Super Agents' page switcher); the 2px track inset is intended and each segment has its own text padding"
+      }
+    ]
+  }
+}

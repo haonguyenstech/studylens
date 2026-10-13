@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>StudyLens</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== Sidebar: floating panel, like Super Agents' project list ===== -->
+  <aside class="sidebar">
+    <div class="side-top drag">
+      <span class="lights-space"></span>
+      <button class="icon-btn no-drag" id="btn-new-top" type="button" data-i18n-title="nav.new" data-icon="plus"></button>
+    </div>
+    <div class="brand">
+      <img src="icon.png" alt="" width="34" height="34">
+      <div><b>StudyLens</b><span data-i18n="brand.tag"></span></div>
+    </div>
+    <label class="search">
+      <i data-icon="search"></i>
+      <input id="q" type="search" data-i18n-ph="nav.search" autocomplete="off">
+    </label>
+    <button class="side-item new" id="nav-new" type="button">
+      <span class="tile new-tile"><i data-icon="plus"></i></span>
+      <span class="txt"><b data-i18n="nav.new"></b><small data-i18n="nav.newSub"></small></span>
+    </button>
+    <div class="seg side-tabs" id="side-tab" role="tablist">
+      <button type="button" data-v="notes"><span data-i18n="nav.tabNotes"></span></button>
+      <button type="button" data-v="runs"><span data-i18n="nav.tabRuns"></span><span class="tab-badge" id="runs-badge" hidden></span></button>
+    </div>
+    <div class="side-list" id="history"></div>
+    <p class="side-empty" id="history-empty" hidden></p>
+    <button class="update-card" id="update-card" type="button" hidden>
+      <span class="uc-ico" data-icon="download"></span>
+      <span class="txt"><b id="uc-title"></b><small data-i18n="up.bannerSub"></small></span>
+    </button>
+    <div class="side-foot">
+      <button id="btn-settings" class="settings-btn" type="button">
+        <i data-icon="gear"></i><span data-i18n="nav.settings"></span>
+        <span class="ai-state" id="ai-state"><span class="dot"></span><span class="lbl"></span></span>
+      </button>
+      <button id="btn-restart" class="round-btn" type="button" data-i18n-title="app.restart" data-i18n-aria="app.restart" data-icon="restart"></button>
+    </div>
+  </aside>
+
+  <!-- ===== Main ===== -->
+  <main class="main">
+    <header class="toolbar drag">
+      <div class="crumb"><span id="page-title"></span><span class="crumb-sub" id="page-sub"></span></div>
+      <div class="seg seg-mini no-drag" id="hdr-lang" role="radiogroup" data-i18n-aria="set.uiLang">
+        <button type="button" data-v="vi" title="Tiếng Việt">VI</button>
+        <button type="button" data-v="en" title="English">EN</button>
+      </div>
+    </header>
+
+    <!-- New notebook page -->
+    <section class="page" id="page-new">
+      <div class="col">
+        <div class="card" id="card-files">
+          <div class="card-h"><b data-i18n="files.title"></b><span class="hint" id="files-count"></span></div>
+          <div id="drop" class="drop" tabindex="0" role="button" data-i18n-aria="files.zoneAria">
+            <svg class="ants" aria-hidden="true"><rect/></svg>
+            <span class="ripple" aria-hidden="true"></span>
+            <div class="stack" aria-hidden="true">
+              <span class="doc d1"><em>PPTX</em></span>
+              <span class="doc d2"><em>PDF</em></span>
+              <span class="doc d3"><em>DOCX</em></span>
+              <span class="drop-badge" data-icon="upload"></span>
+            </div>
+            <div class="drop-text">
+              <b class="drop-title"></b>
+              <span class="drop-sub"><span data-i18n="files.or"></span> <u data-i18n="files.pick"></u> <span data-i18n="files.fromDisk"></span></span>
+              <span class="types" data-i18n="files.types"></span>
+            </div>
+          </div>
+          <ol id="files" class="files" hidden></ol>
+          <div class="out-mode" id="out-mode" hidden>
+            <span class="out-mode-l" data-i18n="files.outMode"></span>
+            <div class="seg" id="o-mode" role="radiogroup">
+              <button type="button" data-v="merge"><i data-icon="merge"></i><span data-i18n="files.merge"></span></button>
+              <button type="button" data-v="separate"><i data-icon="split"></i><span data-i18n="files.separate"></span></button>
+            </div>
+          </div>
+          <p class="hint" id="files-hint" hidden></p>
+        </div>
+
+        <div class="card" id="card-opts">
+          <div class="card-h"><b data-i18n="opts.title"></b></div>
+          <div class="field">
+            <span class="field-h"><span id="name-label" data-i18n="opts.name"></span><small class="auto-tag" id="title-auto" data-i18n="opts.nameAuto" hidden></small></span>
+            <input id="o-title" type="text" data-i18n-ph="opts.namePh" data-i18n-aria="opts.name">
+            <ol class="names" id="names" hidden></ol>
+          </div>
+          <div class="field">
+            <span data-i18n="opts.lang"></span>
+            <div class="seg" id="o-lang" role="radiogroup">
+              <button type="button" data-v="Tiếng Việt">Tiếng Việt</button>
+              <button type="button" data-v="English">English</button>
+            </div>
+          </div>
+          <div class="field">
+            <span data-i18n="opts.saveTo"></span>
+            <div class="row">
+              <output id="o-dir" class="path"></output>
+              <button id="o-dir-pick" class="btn" type="button" data-i18n="opts.choose"></button>
+              <button id="o-dir-reset" class="btn" type="button" data-i18n="opts.default" hidden></button>
+            </div>
+          </div>
+          <label class="toggle">
+            <span class="t-txt"><b data-i18n="opts.research"></b><small data-i18n="opts.researchSub"></small></span>
+            <input id="o-research" type="checkbox" checked>
+            <span class="sw" aria-hidden="true"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="col col-run">
+        <div class="actions">
+          <button id="go" class="btn prominent big" type="button" disabled><i data-icon="spark"></i><span data-i18n="run.process"></span></button>
+        </div>
+        <button class="no-ai" id="no-ai" type="button" hidden><i data-icon="warn"></i><span data-i18n="run.noAi"></span></button>
+        <div class="card run" id="card-run">
+          <div class="idle" id="idle">
+            <span class="idle-ico" data-icon="lens"></span>
+            <b data-i18n="run.idle"></b>
+            <span data-i18n="run.idleText"></span>
+            <small data-i18n="run.idleSmall"></small>
+          </div>
+          <button class="active-run" id="active-run" type="button" hidden></button>
+          <div class="recent-runs" id="recent-runs" hidden>
+            <div class="card-h"><b data-i18n="rr.title"></b><button class="link-btn" id="rr-all" type="button" data-i18n="rr.all"></button></div>
+            <div class="rr-list" id="rr-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Run page: live progress, controls and history of one run -->
+    <section class="page run-page" id="page-run" hidden>
+      <div class="run-in" id="run-view"></div>
+    </section>
+
+    <!-- History detail page -->
+    <section class="page detail" id="page-detail" hidden>
+      <div class="detail-in">
+        <div class="d-head">
+          <span class="tile big" id="d-tile"></span>
+          <div class="d-title"><h2 id="d-title"></h2><span id="d-sub"></span></div>
+        </div>
+        <div class="d-actions" id="d-actions"></div>
+        <div class="stats" id="d-stats"></div>
+        <div class="card" id="d-error-card" hidden>
+          <div class="card-h"><b data-i18n="d.error"></b></div>
+          <p class="err-text" id="d-error"></p>
+        </div>
+        <div class="card">
+          <div class="card-h"><b data-i18n="d.sources"></b><span class="hint" id="d-files-count"></span></div>
+          <ol class="files static" id="d-files"></ol>
+        </div>
+        <div class="card">
+          <div class="card-h"><b data-i18n="d.options"></b></div>
+          <dl class="kv" id="d-opts"></dl>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Settings: AI model (engine status, model) and interface language -->
+<dialog id="dlg-settings" class="settings">
+  <div class="set-head">
+    <h2 data-i18n="set.title"></h2>
+    <button class="btn prominent" id="set-close" type="button" data-i18n="set.close"></button>
+  </div>
+  <div class="set-body">
+    <section class="set-sec">
+      <div class="set-sec-h"><b data-i18n="up.section"></b></div>
+      <div class="engine">
+        <span class="engine-ico app-ico"><img src="icon.png" alt="" width="30" height="30"></span>
+        <div class="engine-txt"><b>StudyLens <span id="up-ver"></span></b><span id="up-status"></span></div>
+        <button class="btn" id="up-check" type="button"><i data-icon="redo"></i><span data-i18n="up.check"></span></button>
+      </div>
+    </section>
+    <section class="set-sec">
+      <div class="set-sec-h"><b data-i18n="set.ai"></b><span data-i18n="set.aiSub"></span></div>
+      <div class="engine" id="engine">
+        <span class="engine-ico"><img src="claude.svg" alt="" width="22" height="22"></span>
+        <div class="engine-txt">
+          <b data-i18n="set.engine"></b>
+          <span data-i18n="set.engineSub"></span>
+        </div>
+        <span class="status-pill" id="eng-status"><span class="dot"></span><span class="lbl"></span></span>
+      </div>
+      <dl class="kv eng-kv" id="eng-kv">
+        <dt data-i18n="set.version"></dt><dd id="eng-version">—</dd>
+        <dt data-i18n="set.path"></dt><dd id="eng-path">—</dd>
+      </dl>
+      <p class="eng-err" id="eng-err" hidden></p>
+      <div class="row eng-actions">
+        <button class="btn" id="eng-check" type="button"><i data-icon="redo"></i><span data-i18n="set.recheck"></span></button>
+      </div>
+      <div class="field">
+        <span data-i18n="set.model"></span>
+        <div class="seg" id="o-model" role="radiogroup">
+          <button type="button" data-v="" data-i18n="set.modelDefault"></button>
+          <button type="button" data-v="opus">Opus</button>
+          <button type="button" data-v="sonnet">Sonnet</button>
+          <button type="button" data-v="haiku">Haiku</button>
+        </div>
+        <small class="field-sub" data-i18n="set.modelSub"></small>
+      </div>
+    </section>
+  </div>
+</dialog>
+
+<dialog id="dlg-update" class="update-dlg">
+  <div class="ud-head">
+    <img src="icon.png" alt="" width="52" height="52">
+    <div><h2 id="ud-title"></h2><p id="ud-sub"></p></div>
+  </div>
+  <div class="ud-notes-h" data-i18n="up.notes"></div>
+  <div class="ud-notes" id="ud-notes"></div>
+  <p class="ud-warn" id="ud-busy" data-i18n="up.busy" hidden></p>
+  <div class="ud-progress" id="ud-progress" hidden><div class="r-bar s-running"><i id="ud-bar"></i></div><span id="ud-phase"></span></div>
+  <p class="eng-err" id="ud-err" hidden></p>
+  <div class="row end">
+    <button class="btn" id="ud-later" type="button" data-i18n="up.later"></button>
+    <button class="btn prominent" id="ud-go" type="button"><i data-icon="download"></i><span data-i18n="up.install"></span></button>
+  </div>
+</dialog>
+
+<dialog id="dlg-confirm">
+  <form method="dialog">
+    <h2 id="cf-title"></h2>
+    <p id="cf-text"></p>
+    <div class="row end">
+      <button class="btn" value="cancel" type="submit" data-i18n="cf.cancel"></button>
+      <button class="btn prominent danger-fill" value="ok" type="submit" id="cf-ok"></button>
+    </div>
+  </form>
+</dialog>
+
+<script src="i18n.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

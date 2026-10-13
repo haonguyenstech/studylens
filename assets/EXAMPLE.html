@@ -1,0 +1,122 @@
+<!-- VÍ DỤ MẪU (rút từ một sổ tay đã làm xong). Chỉ để tham khảo cách viết slide và article. -->
+
+<!-- ===== slides.html: một section và một slide ===== -->
+<h2 class="sec-h" id="sec1">Section 1 · Introduction</h2>
+
+<div class="deck-item"><div class="s-no">S1 · Slide 2 / 6</div>
+<div class="slide">
+  <h3 class="s-title">What is System Design?</h3>
+  <div class="s-body">
+    <ul class="b">
+      <li><a class="k" href="#d-blueprint">System Design is the Blueprint of a Software System</a></li>
+      <li><a class="k" href="#d-arch-comp">Defines system architecture, components, interfaces, and data flow</a></li>
+      <li><a class="k" href="#d-quality">Focuses on scalability, reliability, performance, and maintainability</a></li>
+      <li><a class="k" href="#d-boundaries">Establishes boundaries between services, databases, and users</a></li>
+      <li><a class="k" href="#d-biz2tech">Converts business requirements into technical architecture</a></li>
+      <li><a class="k" href="#d-operational">Balances functionality with operational realities</a></li>
+    </ul>
+    <svg class="sv dotbg" viewBox="0 0 900 190" style="margin-top:1.4cqw" role="group" aria-label="Sơ đồ Users, Load Balancer, Application Servers, Cache, Database">
+      <g class="hot" data-d="d-request-flow" tabindex="0" role="button" aria-label="Users">
+        <rect class="mark" x="60" y="62" width="120" height="66" fill="#E3F0FC" stroke="#5B9BD5" stroke-width="1.5"/><text x="120" y="101" text-anchor="middle" font-size="19" fill="#1F4E79" font-family="Source Sans 3, sans-serif">Users</text></g>
+      <path d="M180,95 H243" stroke="#333" stroke-width="1.3" fill="none" marker-end="url(#svA)"/>
+      <g class="hot" data-d="d-lb" tabindex="0" role="button" aria-label="Load Balancer">
+        <rect class="mark" x="245" y="62" width="200" height="66" fill="#E8F5E9" stroke="#66BB6A" stroke-width="1.5"/><text x="345" y="101" text-anchor="middle" font-size="19" fill="#1B5E20" font-family="Source Sans 3, sans-serif">Load Balancer</text></g>
+      <path d="M445,95 H508" stroke="#333" stroke-width="1.3" fill="none" marker-end="url(#svA)"/>
+      <g class="hot" data-d="d-request-flow" tabindex="0" role="button" aria-label="Application Servers">
+        <rect class="mark" x="510" y="62" width="230" height="66" fill="#E8F5E9" stroke="#66BB6A" stroke-width="1.5"/><text x="625" y="101" text-anchor="middle" font-size="19" fill="#1B5E20" font-family="Source Sans 3, sans-serif">Application Servers</text></g>
+      <path d="M690,62 C730,40 760,30 798,30" stroke="#333" stroke-width="1.3" fill="none" marker-end="url(#svA)"/>
+      <path d="M690,128 C730,150 760,160 798,160" stroke="#333" stroke-width="1.3" fill="none" marker-end="url(#svA)"/>
+      <g class="hot" data-d="d-cache" tabindex="0" role="button" aria-label="Cache">
+        <path class="hit" d="M800,14 v34 a45,9 0 0 0 90,0 v-34" fill="#FFF8DC" stroke="#E6C34A" stroke-width="1.5"/><ellipse cx="845" cy="14" rx="45" ry="9" fill="#FFF8DC" stroke="#E6C34A" stroke-width="1.5"/><text x="845" y="42" text-anchor="middle" font-size="17" fill="#C4612A" font-family="Source Sans 3, sans-serif">Cache</text></g>
+      <g class="hot" data-d="d-database" tabindex="0" role="button" aria-label="Database">
+        <path class="hit" d="M800,142 v34 a45,9 0 0 0 90,0 v-34" fill="#ECEFF1" stroke="#555" stroke-width="1.3"/><ellipse cx="845" cy="142" rx="45" ry="9" fill="#ECEFF1" stroke="#555" stroke-width="1.3"/><text x="845" y="170" text-anchor="middle" font-size="17" fill="#333" font-family="Source Sans 3, sans-serif">Database</text></g>
+      <defs><marker id="svA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker></defs>
+    </svg>
+  </div>
+</div></div>
+
+<!-- ===== articles.html: các article tương ứng ===== -->
+<article class="d" id="d-blueprint" data-where="S1 · Slide 2" data-q="System Design is the Blueprint of a Software System">
+<p class="vi">System Design là bản thiết kế (bản vẽ) của một hệ thống phần mềm.</p>
+<div class="easy"><b>Hiểu nhanh</b>Trước khi viết dòng code nào, bạn vẽ ra hệ thống gồm những khối gì và chúng nối với nhau ra sao. Bản vẽ đó chính là system design.</div>
+<div class="ex"><span class="chip">Ví dụ đời thường</span>
+<p>Nhà bạn xây nhà phố 4 tầng. Trước khi thợ đổ móng, kiến trúc sư phải vẽ: mấy phòng, cầu thang đặt đâu, đường ống nước và dây điện đi lối nào, cột nào chịu lực. Nếu xây xong tầng 3 mới phát hiện quên chừa chỗ đặt bồn nước trên sân thượng thì phải đục tường, đổ lại sàn, tốn gấp mấy lần so với sửa trên giấy.</p>
+<div class="map"><span class="h">Đời thường</span><i></i><span class="h">Trong hệ thống</span>
+<span>Bản vẽ kiến trúc</span><i>→</i><span>Tài liệu system design</span>
+<span>Thợ xây theo bản vẽ</span><i>→</i><span>Lập trình viên viết code</span>
+<span>Cột chịu lực, đường điện nước</span><i>→</i><span>Database, cách các service gọi nhau</span>
+<span>Đục tường sửa sau khi xây</span><i>→</i><span>Migrate dữ liệu khi đã có hàng triệu user</span>
+</div></div>
+<p><b>Trong app bạn dùng hằng ngày:</b> khi một app ngân hàng thông báo “bảo trì hệ thống từ 23h đến 4h sáng”, nhiều khi đó chính là lúc họ đang “đục tường”: chuyển dữ liệu sang hệ thống mới, việc mà nếu thiết kế lường trước từ đầu thì có thể nhẹ nhàng hơn nhiều.</p>
+<h4>Đi sâu hơn</h4>
+<p>Blueprint là bản vẽ kỹ thuật. Viết code là “xây”, còn system design là bản vẽ: hệ thống gồm những khối nào và chúng nối với nhau ra sao.</p>
+<p>Sửa bản vẽ thì rẻ, đập nhà ra sửa thì đắt. Chọn sai database hay sai cách giao tiếp giữa các service (các chương trình nhỏ, mỗi cái lo một việc), nếu phát hiện lúc thiết kế thì chỉ mất một buổi họp. Phát hiện khi đã có hàng triệu user thì mất vài tháng migrate (chuyển dữ liệu sang chỗ mới).</p>
+<div class="note"><span class="chip c-where">Dùng ở đâu</span><p>Ở công ty, “bản vẽ” này thường là một <b>design doc</b> (Google gọi là design doc, nhiều nơi gọi là RFC hoặc ADR) được review trước khi code. Trong phỏng vấn, nó là hình bạn vẽ trên bảng trong 45 phút.</p></div>
+</article>
+
+<article class="d" id="d-request-flow" data-where="S1 · Slide 2 · sơ đồ" data-q="Users → Load Balancer → Application Servers → Cache / Database">
+<div class="easy"><b>Hiểu nhanh</b>Đây là đường đi cơ bản nhất của một request: người dùng gửi tới một cửa, cửa đó chia cho một máy chủ rảnh, máy chủ tìm dữ liệu ở chỗ để gần (cache) trước, không có mới vào kho chính (database).</div>
+<div class="ex"><span class="chip">Ví dụ đời thường</span>
+<p>Bạn ra quầy thuốc lớn trong bệnh viện. Ở cửa có nhân viên phát số, chỉ bạn tới quầy nào đang trống. Dược sĩ ở quầy nhìn kệ ngay sau lưng trước, thuốc phổ biến như paracetamol thì có sẵn, đưa ngay. Thuốc hiếm thì phải vào kho phía sau lấy, lâu hơn, và lấy xong thì để thêm vài hộp lên kệ cho người sau.</p>
+<div class="map"><span class="h">Đời thường</span><i></i><span class="h">Trong hệ thống</span>
+<span>Nhân viên phát số chỉ quầy trống</span><i>→</i><span>Load balancer</span>
+<span>Các quầy dược sĩ</span><i>→</i><span>App servers (×N)</span>
+<span>Kệ thuốc sau lưng</span><i>→</i><span>Cache (~1 ms)</span>
+<span>Kho phía sau</span><i>→</i><span>Database (~5–50 ms)</span>
+</div></div>
+<p><b>Trong app bạn dùng hằng ngày:</b> lần đầu mở trang một sản phẩm trên Tiki có khi hơi chậm, mở lại thì nhanh hẳn. Một phần lý do thường là lần sau dữ liệu đã nằm sẵn trong cache. Và đôi khi giá vừa đổi mà bạn vẫn thấy giá cũ một lúc, đó là cache chưa kịp cập nhật.</p>
+<figure class="fig">
+<svg class="dg" viewBox="0 0 800 270" style="min-width:620px" role="img" aria-label="Luồng request cơ bản có đánh số">
+  <rect class="box hot" x="20" y="110" width="110" height="50" rx="6"/><text x="75" y="140" text-anchor="middle">Users</text>
+  <rect class="box okb" x="185" y="110" width="140" height="50" rx="6"/><text x="255" y="140" text-anchor="middle">Load Balancer</text>
+  <rect class="box okb" x="396" y="96" width="160" height="50" rx="6"/><rect class="box okb" x="388" y="104" width="160" height="50" rx="6"/><rect class="box okb" x="380" y="112" width="160" height="50" rx="6"/><text x="460" y="142" text-anchor="middle">App Servers (×N)</text>
+  <path class="edge" d="M130,135 H183" marker-end="url(#mk)"/><path class="edge" d="M325,135 H378" marker-end="url(#mk)"/>
+  <path class="box warnb" d="M640,30 v46 a60,11 0 0 0 120,0 v-46"/><ellipse class="box warnb" cx="700" cy="30" rx="60" ry="11"/><text x="700" y="64" text-anchor="middle">Cache</text><text class="sub" x="700" y="80" text-anchor="middle">Redis · ~1 ms</text>
+  <path class="box soft" d="M640,180 v52 a60,11 0 0 0 120,0 v-52"/><ellipse class="box soft" cx="700" cy="180" rx="60" ry="11"/><text x="700" y="214" text-anchor="middle">Database</text><text class="sub" x="700" y="230" text-anchor="middle">Postgres · ~5–50 ms</text>
+  <path class="edge acc" d="M556,118 C596,108 606,70 636,60" marker-end="url(#mkA)"/><path class="edge bad" d="M540,150 C590,165 600,200 636,205" marker-end="url(#mkB)"/><path class="edge dash" d="M700,170 V95" marker-end="url(#mk)"/>
+  <circle class="numc" cx="156" cy="120" r="10"/><text class="numt" x="156" y="124" text-anchor="middle">1</text>
+  <circle class="numc" cx="352" cy="120" r="10"/><text class="numt" x="352" y="124" text-anchor="middle">2</text>
+  <circle class="numc" cx="604" cy="78" r="10"/><text class="numt" x="604" y="82" text-anchor="middle">3</text>
+  <circle class="numc" cx="592" cy="186" r="10"/><text class="numt" x="592" y="190" text-anchor="middle">4</text>
+  <circle class="numc" cx="722" cy="132" r="10"/><text class="numt" x="722" y="136" text-anchor="middle">5</text>
+  <text class="sub" x="20" y="200">1 · user gửi request tới 1 địa chỉ duy nhất</text>
+  <text class="sub" x="20" y="218">2 · LB chọn 1 server còn khỏe (round-robin, least-connections)</text>
+  <text class="sub" x="20" y="236">3 · server hỏi cache trước (cache hit → trả ngay)</text>
+  <text class="sub" x="20" y="254">4 · cache miss → đọc DB · 5 · ghi kết quả lại vào cache</text>
+</svg>
+<figcaption>Bước 3–5 là mẫu <b>cache-aside</b>: ứng dụng tự quản lý cache. Phổ biến nhất vì đơn giản, và cache hỏng thì hệ thống vẫn chạy được, chỉ chậm hơn.</figcaption>
+</figure>
+<p>Cache hit là tìm thấy trên “kệ”, cache miss là không có, phải vào “kho”. Giả sử 90% request là hit: trung bình mỗi lần đọc chỉ tốn khoảng 0,9 × 1 ms + 0,1 × 30 ms ≈ 4 ms thay vì 30 ms nếu lần nào cũng vào database.</p>
+<div class="note"><span class="chip c-where">Dùng ở đâu</span><p>Bộ khung này có ở gần như mọi web app có lượng truy cập thật: thương mại điện tử, mạng xã hội, app ngân hàng. Trên AWS tương ứng là ALB, EC2/ECS, ElastiCache và RDS. Các section sau của khóa học đào sâu từng khối trong hình: <a href="#d-lb">Load Balancer</a>, <a href="#d-cache">Cache</a>, <a href="#d-database">Database</a>.</p></div>
+<div class="note"><span class="chip c-trap">Dễ hiểu nhầm</span><p>Load balancer chỉ chia tải được khi app server <mark>stateless</mark> (không giữ session, tức thông tin đăng nhập, trong RAM). Nếu session nằm ở server A mà request sau rơi vào server B thì user bị đăng xuất. Cách xử lý: để session trong Redis hoặc dùng token (JWT); <i>sticky session</i> (luôn đưa một user về cùng một server) cũng được nhưng server A chết là mất session.</p></div>
+</article>
+
+<article class="d" id="d-retry" data-where="S15 · Slide 8, 12 · khối 8" data-q="8. Retry & Failure Handling (Worker Failure → Retry Policy → Retry Queue → Success / Dead Letter Queue)">
+<div class="easy"><b>Hiểu nhanh</b>Gửi thất bại thì thử lại, nhưng phải thử khéo: mỗi lần chờ lâu hơn lần trước, mọi người không cùng thử lại một lúc, và có giới hạn số lần. Thử mãi không được thì đưa vào một hàng riêng (Dead Letter Queue) để người xem xét, không vứt đi.</div>
+<div class="ex"><span class="chip">Ví dụ đời thường</span>
+<p>Gọi tổng đài điện lực lúc mất điện cả khu, máy báo bận. Bạn chờ 1 phút gọi lại, vẫn bận thì chờ 2 phút, rồi 4 phút. Nếu cả khu phố cùng canh đúng phút thứ 1 để gọi lại thì tổng đài lại nghẽn, nên mỗi người nên gọi lại vào một lúc ngẫu nhiên. Gọi 5 lần vẫn không được thì bạn ghi giấy nhờ tổ trưởng báo lên. Còn nếu bạn bấm nhầm số thì gọi lại trăm lần cũng vô ích.</p>
+<div class="map"><span class="h">Đời thường</span><i></i><span class="h">Trong hệ thống</span>
+<span>Chờ 1, 2, 4 phút rồi gọi lại</span><i>→</i><span>Exponential backoff</span>
+<span>Mỗi người gọi lại một lúc ngẫu nhiên</span><i>→</i><span>Jitter</span>
+<span>Gọi 5 lần không được thì nhờ tổ trưởng</span><i>→</i><span>Dead Letter Queue, có alert</span>
+<span>Bấm nhầm số thì đừng gọi lại</span><i>→</i><span>Lỗi vĩnh viễn: ghi FAILED ngay</span>
+</div></div>
+<p><b>Trong app bạn dùng hằng ngày:</b> đặt Grab giờ cao điểm, app báo "đang tìm tài xế" rồi tự thử lại vài lần trước khi báo không tìm được. Còn khi bạn nhận một thông báo đơn hàng trễ cả chục phút so với lúc đặt, rất có thể lần gửi đầu đã lỗi và đó là lần thử lại.</p>
+<div class="kv">
+<div><b>Retry Policy (Exponential Backoff)</b>Mỗi lần thất bại thì chờ lâu gấp đôi lần trước: 1s, 2s, 4s, 8s… Provider lỗi thường vì đang quá tải, dồn dập retry chỉ làm tệ hơn. Luôn đặt trần (ví dụ tối đa 5 phút) và số lần thử tối đa.</div>
+<div><b>Jitter (slide không có nhưng rất quan trọng)</b>10.000 message cùng lỗi lúc 0s thì với backoff thuần, cả 10.000 cùng retry ở giây 1, rồi cùng lúc ở giây 3… thành từng đợt sóng (<i>thundering herd</i>, "đàn trâu cùng lao tới"). Jitter thêm ngẫu nhiên để trải đều. AWS khuyên <b>full jitter</b>: <code>sleep = random(0, min(cap, base × 2^attempt))</code>.</div>
+<div><b>Retry Queue (Same Channel)</b>Đưa message lỗi vào hàng đợi chờ thay vì để worker ngủ giữ chỗ. SQS: <code>DelaySeconds</code> hoặc đổi visibility timeout; Kafka: các topic <code>retry-1m</code>, <code>retry-10m</code>.</div>
+<div><b>Success (Recorded in Delivery Tracker)</b>Thành công ở lần thử nào cũng ghi về Delivery Tracker.</div>
+<div><b>Dead Letter Queue (For Failed Events)</b>Hết lượt thì vào DLQ. DLQ phải có alert: DLQ tăng mà không ai biết thì cũng như mất thông báo.</div>
+</div>
+<figure class="fig">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+  <div style="font-size:13.5px;font-weight:600">100 client cùng lỗi lúc t = 0, mỗi client thử lại 4 lần (base 1 s)</div>
+  <button class="btn" id="jit-btn" type="button">Chạy lại ngẫu nhiên</button>
+</div>
+<svg id="jit" class="dg" viewBox="0 0 800 330" style="min-width:620px" role="img" aria-label="Retry không jitter và full jitter"></svg>
+<figcaption>Mỗi cột là số lần retry rơi vào khung 0,25 giây. Không jitter: cả 100 client retry đúng cùng lúc ở giây 1, 3, 7, 15. Full jitter: cùng số lần retry được rải ra, đỉnh còn khoảng một phần tư hoặc thấp hơn.</figcaption>
+</figure>
+<div class="note"><span class="chip c-trap">Dễ hiểu nhầm</span><p>Không phải lỗi nào cũng nên retry. Lỗi <b>tạm thời</b> (429 quá nhiều request, 503 dịch vụ tạm không phục vụ, timeout) thì retry. Lỗi <b>vĩnh viễn</b> (email không tồn tại, token <code>UNREGISTERED</code>, số điện thoại sai) thì retry bao nhiêu cũng vô ích, chỉ tốn tiền và quota: ghi FAILED ngay.</p></div>
+</article>
+
