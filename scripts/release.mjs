@@ -16,5 +16,7 @@ const run = (cmd, args) => { const r = spawnSync(cmd, args, { stdio: "inherit", 
 
 console.log(`Releasing StudyLens ${version}…`);
 run("npm", ["run", "build"]);
-run("npx", ["electron-builder", "--mac", "--win", "--publish", "always", `-c.releaseInfo.releaseNotes=${notes}`, `-c.releaseInfo.releaseName=StudyLens ${version}`]);
+run("npx", ["electron-builder", "--mac", "--win", "--publish", "always"]);
+// electron-builder leaves the release body empty; the in-app "What's new" reads it, so set it here.
+run("gh", ["release", "edit", `v${version}`, "-R", "haonguyenstech/studylens-releases", "--title", `StudyLens ${version}`, "--notes", notes]);
 console.log(`Done: https://github.com/haonguyenstech/studylens-releases/releases/tag/v${version}`);

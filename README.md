@@ -48,6 +48,22 @@ Each press of **Process** creates a *run*, saved in `<userData>/runs.json`.
 - The **Runs** tab in the sidebar keeps every run: its state, progress, cost, time, and a log per file (`log.jsonl` in the working folder).
 - The engine is `src/main/runs.ts` (`RunManager`). `node scripts/test-runs.mjs` checks pause/continue, stop → relaunch → continue, skip, retry, start over and delete against `scripts/fake-claude.mjs`, so no AI calls are made.
 
+## Releases and self-update
+
+- The source code (this repo) is **private**. The installers and the update feed live in the **public** repo [haonguyenstech/studylens-releases](https://github.com/haonguyenstech/studylens-releases).
+- To publish:
+  1. Bump `version` in `package.json`.
+  2. Add a `## X.Y.Z` section to `CHANGELOG.md`.
+  3. Run `npm run release`.
+
+  The script builds the macOS dmg/zip (arm64 + x64) and the Windows nsis/zip (x64), then uploads them as release `vX.Y.Z` with the changelog section as notes. It takes the token from `gh auth token`.
+- The app checks `releases/latest` of the public repo 4 s after launch and then every 6 h. You can also check from Settings → Updates.
+- When a newer version exists, a card appears in the sidebar with the release notes and **Update & restart** (`src/main/updater.ts`):
+  - **macOS:** the app isn't signed, so Squirrel.Mac can't be used. The updater downloads the zip for this machine's chip and checks its sha256 against GitHub's asset digest. It then unpacks the zip with `ditto` and starts a detached script. Once the app has quit, the script swaps the `.app` bundle (and rolls back if the swap fails), clears the quarantine flag and reopens the app.
+  - **Windows:** the updater runs the NSIS installer with `/S --force-run` after the app quits.
+- If a run is in progress during an update, it is stopped with its session kept, so you can **Continue** it after the update.
+- To test the update flow, run an older build with `STUDYLENS_UPDATE_TEST=1`. It checks, installs without relaunching, and quits.
+
 ## Development
 
 ```bash
