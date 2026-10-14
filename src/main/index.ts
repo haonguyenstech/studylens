@@ -12,6 +12,7 @@ import { RunManager } from "./runs";
 import { renderMermaid } from "./diagrams";
 import { inOwnFolder } from "./paths";
 import { checkForUpdate, installUpdate, UpdateInfo } from "./updater";
+import { shootGuide } from "./guide-shots";
 
 app.setName("StudyLens");
 // In-app preview: notebooks and source files are served as slpreview://f/<absolute path>, own origin (not the app's).
@@ -90,7 +91,7 @@ function createWindow() {
   const shoot = process.env.STUDYLENS_SHOOT;
   if (shoot) {
     win.webContents.on("console-message", (_e, level, message) => { if (level >= 2) console.log(`[renderer] ${message}`); });
-    win.webContents.once("did-finish-load", () => shootStates(shoot));
+    win.webContents.once("did-finish-load", () => (process.env.STUDYLENS_GUIDE ? shootGuide(win!, shoot) : shootStates(shoot)));
   }
   else if (!process.env.STUDYLENS_HIDDEN) win.once("ready-to-show", () => win?.show());   // HIDDEN: dev self-test without a window
   // The shadow of a transparent window is traced from its pixels; refresh it once the page has painted and after resizes.

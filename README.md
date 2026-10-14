@@ -28,6 +28,7 @@ Every line explained, every spec analysed, every WBS mapped — and every number
 
 <a href="#features">Features</a> ·
 <a href="#getting-started">Getting started</a> ·
+<a href="#guide">Guide</a> ·
 <a href="#how-it-works">How it works</a> ·
 <a href="#safety">Safety</a> ·
 <a href="#releases-and-self-update">Releases</a> ·
@@ -114,6 +115,12 @@ npm test             # library, Deep Brief, WBS, run engine (fake Claude) and di
 npm run release      # every installer, uploaded to this repo's GitHub Releases (see below)
 ```
 
+The Guide's screenshots come from the app itself, with demo data and a fake Claude:
+
+```bash
+STUDYLENS_GUIDE=1 STUDYLENS_THEME=dark STUDYLENS_FAKE_CLAUDE=$PWD/scripts/fake-claude.mjs STUDYLENS_SHOOT=/tmp/StudyLens npx electron .
+```
+
 Without the UI:
 
 ```bash
@@ -121,6 +128,148 @@ node scripts/run-cli.mjs file.pdf --model sonnet --fast --out /tmp/out          
 npx electron scripts/run-cli-electron.cjs spec.pdf --brief --out /tmp/out         # Deep Brief (draws diagrams)
 npx electron scripts/run-cli-electron.cjs wbs.xlsx --wbs --out /tmp/out           # WBS Map
 ```
+
+## Guide
+
+The numbers in each screenshot match the table under it.
+
+### 1. Check the AI engine
+
+Open **Settings** (bottom left). The pill next to it says **AI ready** once Claude Code is found.
+
+<img src=".github/assets/guide-1-settings.png" width="820" alt="Settings: Claude Code status, model, appearance" />
+
+| | |
+|---|---|
+| **1 · Claude Code** | **Working** means StudyLens found `claude` and it answered. Not found? Click the refresh icon after installing it, or enter its path here. |
+| **2 · Model** | **Default** uses whatever Claude Code uses. Opus writes most carefully and is slowest; Haiku is fastest. Applies to new runs. |
+| **3 · Appearance** | Light, dark, or follow the system. The ◐ button in the header switches it too. |
+
+> 📌 Further down: **Projects folder** (where new projects go, `~/Documents/StudyLens` by default) and **Updates**.
+
+### 2. Make a project
+
+A project is a folder on disk; every notebook made in it gets its own folder inside. Click **+** next to *Projects* in the sidebar, or **New project** on the home page.
+
+<img src=".github/assets/guide-2-project.png" width="820" alt="New project dialog: name, color, folder" />
+
+| | |
+|---|---|
+| **1 · Project name** | Also the folder name. |
+| **2 · Color** | Tints the project's icon in the sidebar. |
+| **3 · Folder** | Where the folder is created. **Choose…** to put it anywhere, e.g. a synced drive. |
+
+> 📌 Renaming a project renames its folder. Drag a notebook onto another project to move it, files and all.
+
+### 3. Add documents and press Process
+
+Open the project → **New notebook**.
+
+<img src=".github/assets/guide-3-documents.png" width="820" alt="New notebook: add documents, file list, output mode, Process" />
+
+| | |
+|---|---|
+| **1 · Add documents** | Click to pick files, or drop them here: PDF, PPTX, DOCX, XLSX, images. |
+| **2 · Files** | The order the notebook follows. Drag to reorder, ✕ to remove. A ✓ means the file was found and is readable. |
+| **3 · Output** | **One notebook** from all the files, or **One per file** (a separate notebook for each, run one after another). |
+| **4 · Process** | Starts the run. Disabled until Claude Code is ready and the files fit the notebook type. |
+
+Then scroll down to the options:
+
+<img src=".github/assets/guide-3-options.png" width="820" alt="Options: notebook type, notebook name, language, web fact-check" />
+
+| | |
+|---|---|
+| **1 · Notebook type** | **Tap to Explain** for slides and lectures, **Deep Brief** for long documents (RFP, PRD, spec), **WBS Map** for an Excel WBS. |
+| **2 · Notebook name** | Filled in from the files; type over it. With *One per file* each notebook gets its own name. |
+| **3 · Explanation language** | The language the notebook is written in, whatever the documents are in. |
+| **4 · Fact-check on the web** | Lets Claude check numbers, limits and years against official sources. Slower, more accurate. |
+
+**WBS Map** reads figures straight from the workbook, so it needs at least one `.xlsx`:
+
+<img src=".github/assets/guide-3-wbs-warn.png" width="820" alt="WBS Map selected without an Excel file: a warning, Process disabled" />
+
+| | |
+|---|---|
+| **1 · WBS Map** | Add the WBS workbook, plus the RFP / PRD if you have one (used to trace requirements). |
+| **2 · Warning** | Shown, and Process stays off, until an `.xlsx` is in the list. |
+
+> 📌 Hidden sheets in the workbook are skipped: they are usually old drafts.
+
+### 4. Follow the run
+
+The run page opens by itself. Runs keep going while you use the rest of the app; the **Runs** tab in the sidebar lists them.
+
+<img src=".github/assets/guide-4-run.png" width="820" alt="A run in progress: progress, controls, one row per notebook, log" />
+
+| | |
+|---|---|
+| **1 · Progress** | Across all notebooks of the run, with time so far and the model. |
+| **2 · Pause / Stop** | **Pause** keeps the Claude session; **Continue** picks up where it left off — even after you quit the app. |
+| **3 · Notebooks** | One row per notebook with its steps: *Prepare → Write → Check → Assemble*. Click a row to see its log. |
+| **4 · Log** | What Claude is reading and writing, and what the app checked. |
+
+When a notebook fails, the others still finish:
+
+<img src=".github/assets/guide-4-failed.png" width="820" alt="A finished run with one failed notebook and Retry failed files" />
+
+| | |
+|---|---|
+| **1 · Failed notebook** | The reason is under its name. ↻ retries just this one. |
+| **2 · Run controls** | **Retry failed files**, show the result in Finder / Explorer, **Start over**, or delete the run. |
+
+> 📌 A usage-limit error is the most common failure. Wait for your plan to reset, then **Retry failed files**.
+
+### 5. Open a notebook
+
+Notebooks appear on the project page.
+
+<img src=".github/assets/guide-5-project.png" width="820" alt="Project page: notebook cards, quick look and menu, tag filter, search" />
+
+| | |
+|---|---|
+| **1 · Notebook card** | Click for details; <kbd>Space</kbd> opens a quick look. Drag it onto another project to move it. |
+| **2 · Quick look · ⋯** | The eye opens the quick look; **⋯** has rename, tags, move to a project, view the run, delete. |
+| **3 · Tag filter** | Show only the notebooks with a tag. |
+| **4 · Search** | Searches every project: titles, source file names and `#tags`. |
+
+**Quick look** shows the notebook — or one of its source files — inside the app:
+
+<img src=".github/assets/guide-5-preview.png" width="820" alt="Quick look: tabs for the notebook and its source PDF, open in browser, close" />
+
+| | |
+|---|---|
+| **1 · Tabs** | The notebook, then each source document (PDFs and images show in place). |
+| **2 · Open in browser** | The notebook is one `.html` file: open it in any browser, share it, it works offline. |
+| **3 · Close** | Or <kbd>Esc</kbd>. |
+
+The notebook's own page:
+
+<img src=".github/assets/guide-5-detail.png" width="820" alt="Notebook details: actions, tags, stats" />
+
+| | |
+|---|---|
+| **1 · Actions** | Quick look, open in browser, show in Finder / Explorer; **More** has rename, tags, move, run again, view the run, delete. |
+| **2 · Tags** | Click **Tags…** to edit. |
+| **3 · Stats** | Slides and explanations (Tap to Explain), sections and diagrams (Deep Brief), or modules and items (WBS Map); time and model. |
+
+### 6. Tags and search
+
+<img src=".github/assets/guide-6-tags.png" width="820" alt="Tags dialog: current tags, suggestions" />
+
+| | |
+|---|---|
+| **1 · Tags** | Type, then <kbd>Enter</kbd> or a comma. <kbd>Backspace</kbd> removes the last one. Up to 20 per notebook. |
+| **2 · Suggestions** | Ready-made tags by progress, purpose, material and level. Click to add. |
+
+Type `#` in the search box to search by tag:
+
+<img src=".github/assets/guide-6-search.png" width="820" alt="Sidebar search for #final: matching tag and notebooks" />
+
+| | |
+|---|---|
+| **1 · Search** | `#final` matches tags starting with *final*; plain words match titles, file names and tags. Several words must all match. Accents are optional (`on tap` finds *ôn tập*). |
+| **2 · Results** | Tags that start with what you typed (click one to finish it), then the matching notebooks by project. |
 
 ---
 
@@ -181,6 +330,7 @@ src/main/
 ├── diagrams.ts       Mermaid → SVG in a hidden window
 ├── wbs.ts            WBS Map: read the sheet, check the spec, render
 ├── claude.ts         find and launch the CLI (stdin prompt, Windows .cmd)
+├── guide-shots.ts    renders the Guide's numbered screenshots (dev only)
 └── updater.ts        GitHub Releases self-update
 src/renderer/         the UI (plain JS + CSS), i18n, fonts
 assets/               per notebook type: GUIDE.md (instructions for Claude), template.html, example
