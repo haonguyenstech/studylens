@@ -1,4 +1,4 @@
-// Self-update from the public releases repo (the source repo stays private).
+// Self-update from this repo's GitHub Releases (public).
 // - check: GitHub "latest release" API, no token needed; compares tag vX.Y.Z with app.getVersion()
 // - macOS: the build is not code-signed, so Squirrel.Mac can't be used. We download the .zip for
 //   this chip, check its sha256 against the asset digest, unpack it with ditto, and a detached
@@ -10,7 +10,7 @@ import { createHash } from "node:crypto";
 import { createWriteStream, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-export const RELEASES_REPO = "haonguyenstech/studylens-releases";
+export const RELEASES_REPO = "haonguyenstech/studylens";
 
 export interface UpdateInfo {
   current: string;

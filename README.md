@@ -15,8 +15,16 @@ Every line explained, every spec analysed, every WBS mapped — and every number
   <img alt="Electron 33" src="https://img.shields.io/badge/Electron-33-47848F?logo=electron&logoColor=white" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white" />
   <img alt="Agent" src="https://img.shields.io/badge/agent-Claude%20Code-D97757" />
-  <img alt="Private" src="https://img.shields.io/badge/repo-private-6E7781" />
 </p>
+
+<p>
+  <a href="https://github.com/haonguyenstech/studylens/releases/latest/download/StudyLens-mac-arm64.dmg"><img alt="Download for macOS" src="https://img.shields.io/badge/Download_for_macOS-000000?style=for-the-badge&logo=apple&logoColor=white" height="40" /></a>
+  &nbsp;
+  <a href="https://github.com/haonguyenstech/studylens/releases/latest/download/StudyLens-Setup-win-x64.exe"><img alt="Download for Windows" src="https://img.shields.io/badge/Download_for_Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white" height="40" /></a>
+</p>
+<sub>macOS button is for Apple silicon (M1 or later) · <a href="https://github.com/haonguyenstech/studylens/releases/latest/download/StudyLens-mac-x64.dmg">Intel Mac</a> · <a href="https://github.com/haonguyenstech/studylens/releases/latest">all downloads</a></sub>
+
+<br /><br />
 
 <a href="#features">Features</a> ·
 <a href="#getting-started">Getting started</a> ·
@@ -86,7 +94,15 @@ StudyLens finds `claude` on its own. If it can't, open **Settings → AI engine*
 `~/.local/bin/claude` on macOS, `%USERPROFILE%\.local\bin\claude.exe` (or `%APPDATA%\npm\claude.cmd`) on Windows.
 
 ### Install
-Download the latest installer from **[studylens-releases](https://github.com/haonguyenstech/studylens-releases/releases/latest)**. The app is not signed: on macOS right-click → **Open** the first time.
+Use the download buttons at the top, or pick a file from the **[latest release](https://github.com/haonguyenstech/studylens/releases/latest)**:
+
+| | |
+|---|---|
+| macOS, Apple silicon | [StudyLens-mac-arm64.dmg](https://github.com/haonguyenstech/studylens/releases/latest/download/StudyLens-mac-arm64.dmg) |
+| macOS, Intel | [StudyLens-mac-x64.dmg](https://github.com/haonguyenstech/studylens/releases/latest/download/StudyLens-mac-x64.dmg) |
+| Windows 10/11 (x64) | [StudyLens-Setup-win-x64.exe](https://github.com/haonguyenstech/studylens/releases/latest/download/StudyLens-Setup-win-x64.exe) |
+
+The app is not code-signed. On macOS, the first time: right-click the app → **Open** (or run `xattr -cr /Applications/StudyLens.app`). On Windows, SmartScreen may warn: **More info → Run anyway**. After that, StudyLens updates itself.
 
 ### Build & run
 
@@ -95,7 +111,7 @@ npm install
 npm run dev          # hot reload: CSS swaps in place, renderer reloads, main/preload restart. F12 = DevTools
 npm run app          # build + pack this Mac's .app + install to /Applications (~5 s)
 npm test             # library, Deep Brief, WBS, run engine (fake Claude) and diagram tests
-npm run release      # every installer, uploaded to studylens-releases (see below)
+npm run release      # every installer, uploaded to this repo's GitHub Releases (see below)
 ```
 
 Without the UI:
@@ -144,7 +160,7 @@ The AI works on your files unattended, so the limits are set in code:
 
 ## Releases and self-update
 
-- This repo (source) is **private**; installers and the update feed live in the public **[studylens-releases](https://github.com/haonguyenstech/studylens-releases)**.
+- Installers and the update feed are this repo's **[GitHub Releases](https://github.com/haonguyenstech/studylens/releases)**. Each release also carries fixed-name copies (`StudyLens-mac-arm64.dmg`, `StudyLens-mac-x64.dmg`, `StudyLens-Setup-win-x64.exe`) so the download buttons always point at the newest build.
 - To publish: bump `version` in `package.json`, add a `## X.Y.Z` section to `CHANGELOG.md`, run `npm run release` (macOS dmg/zip arm64 + x64, Windows nsis/zip x64; token from `gh auth token`).
 - The app checks for updates 4 s after launch and every 6 h (or **Settings → Updates**). macOS: downloads the zip for this chip, verifies its sha256, swaps the `.app` after quitting (rolls back on failure). Windows: silent NSIS install. A running notebook is stopped with its session kept, ready to continue.
 
@@ -184,4 +200,4 @@ App data lives in the Electron user-data folder: `projects.json`, `history.json`
 - [Electron](https://www.electronjs.org/) (MIT) · [JSZip](https://stuk.github.io/jszip/) (MIT/GPLv3) · [Mermaid](https://mermaid.js.org/) (MIT)
 - [Google Sans Flex](https://fonts.google.com/) — SIL Open Font License
 
-<div align="center"><sub>Private project · All rights reserved.</sub></div>
+<div align="center"><sub>© Hao Nguyen · All rights reserved.</sub></div>
