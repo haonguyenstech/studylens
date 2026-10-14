@@ -3,6 +3,7 @@ import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { numberLocale, t } from "./i18n";
 import path from "node:path";
 import JSZip from "jszip";
+import { readWorkbook, workbookText } from "./xlsx";
 
 export const DIRECT = [".pdf", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".md", ".markdown", ".txt", ".html", ".htm", ".csv", ".json"];
 export const OFFICE = [".docx", ".pptx", ".xlsx"];
@@ -45,7 +46,7 @@ export async function prepareInputs(files: string[], workDir: string, log: (s: s
       let md = "";
       if (ext === ".pptx") md = await pptxText(zip);
       else if (ext === ".docx") md = await docxText(zip);
-      else md = await xlsxText(zip);
+      else md = workbookText(await readWorkbook(readFileSync(f)));
       item.text = path.join("input-text", name + ".md");
       writeFileSync(path.join(workDir, item.text), `# ${path.basename(f)}\n\n${md}`);
       item.media = await extractMedia(zip, path.join(workDir, "input-media", name), path.join("input-media", name));
@@ -135,22 +136,3 @@ async function docxText(zip: JSZip): Promise<string> {
   return md;
 }
 
-async function xlsxText(zip: JSZip): Promise<string> {
-  const ss = await zip.file("xl/sharedStrings.xml")?.async("string");
-  const shared = ss ? (ss.match(/<si>[\s\S]*?<\/si>/g) || []).map((si) => [...si.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map((m) => unxml(m[1])).join("")) : [];
-  const sheets = Object.keys(zip.files).filter((n) => /^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort(byNum);
-  let md = "";
-  for (let i = 0; i < sheets.length; i++) {
-    const xml = await zip.file(sheets[i])!.async("string");
-    md += `## Sheet ${i + 1}\n\n`;
-    for (const row of xml.match(/<row[\s>][\s\S]*?<\/row>/g) || []) {
-      const cells = (row.match(/<c[\s>][\s\S]*?<\/c>|<c [^>]*\/>/g) || []).map((c) => {
-        const v = /<v>([\s\S]*?)<\/v>/.exec(c)?.[1] ?? /<t[^>]*>([\s\S]*?)<\/t>/.exec(c)?.[1] ?? "";
-        return /t="s"/.test(c) ? shared[+v] ?? "" : unxml(v);
-      });
-      if (cells.some((c) => c.trim())) md += `| ${cells.join(" | ")} |\n`;
-    }
-    md += "\n";
-  }
-  return md;
-}

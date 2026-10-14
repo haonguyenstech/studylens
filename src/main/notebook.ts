@@ -50,7 +50,7 @@ export function readParts(workDir: string): { parts?: Parts; errors: string[] } 
   return { parts: { meta: meta!, slides: slides!, articles: articles!, charts: read("charts.js") || "", css: read("extra.css") || "" }, errors };
 }
 
-function balance(html: string, label: string, errors: string[]) {
+export function balance(html: string, label: string, errors: string[]) {
   const stack: { tag: string; line: number }[] = [];
   const re = /<!--[\s\S]*?-->|<(\/?)([a-zA-Z][\w:-]*)((?:\s+[^\s=>\/]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)*)\s*(\/?)>/g;
   let m: RegExpExecArray | null;

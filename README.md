@@ -1,88 +1,187 @@
+<div align="center">
+
+<img src=".github/assets/icon.png" width="128" alt="StudyLens icon" />
+
 # StudyLens
 
-Desktop app for macOS and Windows. Pick your study material (slide PDF, PPTX, DOCX, XLSX, images, Markdown…), press **Process**, and get back one self-contained **interactive HTML notebook**:
+**Turn study material, specs and WBS spreadsheets into notebooks you actually read — on your Mac or PC.**
 
-- The main page **rebuilds the original material** as 16:9 white slides, keeping the text, order and diagrams.
-- **Every line, and every box or arrow in a diagram, is clickable**. Clicking opens a drawer on the right with:
-  - **Hiểu nhanh**: a 1–3 sentence explanation with no jargon.
-  - **Ví dụ đời thường**: a familiar everyday situation, with a table mapping each part of it to a concept in the system.
-  - **Trong app bạn dùng hằng ngày**: where the concept shows up in Shopee, Grab, MoMo, banking apps…
-  - **Đi sâu hơn**: the full technical knowledge, with numbers and diagrams. Notes are tagged *Dùng ở đâu*, *Dễ hiểu nhầm* or *Khi phỏng vấn*.
-- `Esc` closes the drawer and `←` / `→` move between items. The page counts how many items you've opened, and supports dark mode.
+Drop in slides, PDFs, Word, PowerPoint or Excel, press **Process**, and Claude Code writes one self-contained, interactive HTML notebook.
+Every line explained, every spec analysed, every WBS mapped — and every number checked by the app, not trusted from the AI.
 
-## Requirements
+<p>
+  <img alt="macOS 11+" src="https://img.shields.io/badge/macOS-11%2B-000000?logo=apple&logoColor=white" />
+  <img alt="Windows 10+" src="https://img.shields.io/badge/Windows-10%2B-0078D4?logo=windows&logoColor=white" />
+  <img alt="Electron 33" src="https://img.shields.io/badge/Electron-33-47848F?logo=electron&logoColor=white" />
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white" />
+  <img alt="Agent" src="https://img.shields.io/badge/agent-Claude%20Code-D97757" />
+  <img alt="Private" src="https://img.shields.io/badge/repo-private-6E7781" />
+</p>
 
-[Claude Code](https://claude.com/claude-code) must be installed on the machine and logged in once (run `claude` in a terminal). The app runs `claude -p` headless, so it uses your existing Claude plan. You don't need an API key.
+<a href="#features">Features</a> ·
+<a href="#getting-started">Getting started</a> ·
+<a href="#how-it-works">How it works</a> ·
+<a href="#safety">Safety</a> ·
+<a href="#releases-and-self-update">Releases</a> ·
+<a href="#project-layout">Project layout</a>
 
-The app finds `claude` on its own. If it can't, click the status chip in the top-right corner and enter the path:
+<br /><br />
 
-- macOS: `~/.local/bin/claude`
-- Windows: `%USERPROFILE%\.local\bin\claude.exe`, or `%APPDATA%\npm\claude.cmd` if you installed it with npm.
+<img src=".github/assets/app-new.png" width="820" alt="StudyLens: pick documents, choose a notebook type, press Process" />
 
-## How it works
+</div>
 
-1. **Prepare.** Each run gets its own working directory (`<userData>/jobs/<time>/`).
-   - PDFs and images are copied as they are. Claude reads them directly.
-   - DOCX, PPTX and XLSX files have their text extracted to `input-text/*.md` and their embedded images to `input-media/`.
-2. **Write.** `claude -p` reads `GUIDE.md`, the instructions for slide format, article format and the checklist (`assets/GUIDE.md`). It then writes `out/meta.json`, `out/slides.html`, `out/articles.html` and, optionally, `out/charts.js`.
-   - Allowed tools: Read, Write, Edit, Glob, Grep, Task, plus WebSearch and WebFetch when "Tra cứu web" is turned on.
-   - Bash is blocked, and the permission mode is `dontAsk`.
-3. **Check** (`src/main/notebook.ts`). The app verifies that:
-   - every link points to an existing article, and every article has at least one link to it;
-   - no id is duplicated;
-   - HTML tags are balanced;
-   - each article has its "Hiểu nhanh" and "Ví dụ đời thường" blocks;
-   - `charts.js` has no syntax errors.
+---
 
-   If anything fails, the app runs `claude -p --resume` with the list of errors, for at most 3 rounds.
-4. **Assemble.** The content is inserted into `assets/template.html` (CSS, drawer, navigation) and written out as a single `.html` file. The default location is the folder of the original file.
+## Features
 
-The 8 most recent working directories are kept, so you can inspect a run when it fails.
+### 📚 Three notebook types
+| | |
+|---|---|
+| **Tap to Explain** | Rebuilds the original slides; tap any line — or any box and arrow in a diagram — to open a drawer: a plain-language take, an everyday analogy, where it shows up in apps you use, and the deep technical version. |
+| **Deep Brief** | Rewrites a long document (RFP, PRD, spec, course) as a structured analysis: contents rail, key facts, parts and numbered sections, tables, Mermaid diagrams drawn to SVG, contradictions, glossary and open questions. |
+| **WBS Map** | Reads a work breakdown structure in Excel and builds a delivery map: effort by phase and role, a dependency map between modules, the end-to-end flow, an editable schedule, and per phase/module its purpose, cohesion, preconditions, assumptions and risks — plus findings, WBS quality checks, estimate confidence and the critical chain. |
 
-## Runs: pause, continue, history
+<table>
+  <tr>
+    <td><img src=".github/assets/out-deep-brief.png" alt="A Deep Brief" /></td>
+    <td><img src=".github/assets/out-wbs-map.png" alt="A WBS Map: dependencies between modules" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Deep Brief</sub></td>
+    <td align="center"><sub>WBS Map — hover a module to see what it needs and unlocks</sub></td>
+  </tr>
+</table>
 
-Each press of **Process** creates a *run*, saved in `<userData>/runs.json`.
-- With several files you choose **One notebook** or **One per file**. In *one per file* mode every file gets its own name field, auto-filled from its file name and editable.
-- **Pause / Stop** halt the AI but keep the item's working folder and Claude session id. **Continue** runs `claude --resume <session>` in the same folder, so the work picks up where it stopped, even after the app was quit.
-- **Start over**, **Retry failed files**, and per file **Retry**, **Skip**, **Open** and **Working folder**.
-- The **Runs** tab in the sidebar keeps every run: its state, progress, cost, time, and a log per file (`log.jsonl` in the working folder).
-- The engine is `src/main/runs.ts` (`RunManager`). `node scripts/test-runs.mjs` checks pause/continue, stop → relaunch → continue, skip, retry, start over and delete against `scripts/fake-claude.mjs`, so no AI calls are made.
+### 🗂️ Projects & library
+- **Projects are folders** on disk; notebooks made in a project are saved inside it, one folder each (`<project>/<name>/<name>.html`).
+- Rename, move (drag onto a project), take out, delete — the files follow.
+- **Tags** on notebooks, with ready-made suggestions; search by `#tag`, by title or by source file name, accents optional.
 
-## Releases and self-update
+### ▶️ Runs you can pause
+- One notebook from many files, or one per file.
+- **Pause, stop, continue** — even after quitting the app: the same Claude session resumes in the same folder.
+- Retry a file, skip it, retry the failed ones, start over; a live log per file.
 
-- The source code (this repo) is **private**. The installers and the update feed live in the **public** repo [haonguyenstech/studylens-releases](https://github.com/haonguyenstech/studylens-releases).
-- To publish:
-  1. Bump `version` in `package.json`.
-  2. Add a `## X.Y.Z` section to `CHANGELOG.md`.
-  3. Run `npm run release`.
+### 👀 Quick look
+Preview a notebook — or its source PDFs and images — inside the app (<kbd>Space</kbd> on a card). Notebooks run sandboxed on their own origin; links open in your browser.
 
-  The script builds the macOS dmg/zip (arm64 + x64) and the Windows nsis/zip (x64), then uploads them as release `vX.Y.Z` with the changelog section as notes. It takes the token from `gh auth token`.
-- The app checks `releases/latest` of the public repo 4 s after launch and then every 6 h. You can also check from Settings → Updates.
-- When a newer version exists, a card appears in the sidebar with the release notes and **Update & restart** (`src/main/updater.ts`):
-  - **macOS:** the app isn't signed, so Squirrel.Mac can't be used. The updater downloads the zip for this machine's chip and checks its sha256 against GitHub's asset digest. It then unpacks the zip with `ditto` and starts a detached script. Once the app has quit, the script swaps the `.app` bundle (and rolls back if the swap fails), clears the quarantine flag and reopens the app.
-  - **Windows:** the updater runs the NSIS installer with `/S --force-run` after the app quits.
-- If a run is in progress during an update, it is stopped with its session kept, so you can **Continue** it after the update.
-- To test the update flow, run an older build with `STUDYLENS_UPDATE_TEST=1`. It checks, installs without relaunching, and quits.
+### 🎨 Made to be lived in
+Light, dark or follow the system · Vietnamese and English UI · Google Sans Flex · an animated logo · updates itself from GitHub Releases.
 
-## Development
+<p align="center">
+  <img src=".github/assets/app-project.png" width="49%" alt="A project with tagged notebooks" />
+  <img src=".github/assets/app-run.png" width="49%" alt="A run in progress" />
+</p>
+
+---
+
+## Getting started
+
+### Requirements
+- macOS 11+ (Apple silicon or Intel) or Windows 10+
+- [Claude Code](https://claude.com/claude-code) installed and logged in once (run `claude` in a terminal). StudyLens runs `claude -p` headless on your existing plan — **no API key**.
+
+StudyLens finds `claude` on its own. If it can't, open **Settings → AI engine** and enter the path:
+`~/.local/bin/claude` on macOS, `%USERPROFILE%\.local\bin\claude.exe` (or `%APPDATA%\npm\claude.cmd`) on Windows.
+
+### Install
+Download the latest installer from **[studylens-releases](https://github.com/haonguyenstech/studylens-releases/releases/latest)**. The app is not signed: on macOS right-click → **Open** the first time.
+
+### Build & run
 
 ```bash
 npm install
-npm run dev          # hot reload: CSS swaps in place, renderer JS reloads the window,
-                     # main/preload TypeScript recompiles and restarts the app. F12 = DevTools
-npm run app          # ~5 s: build + pack this Mac's .app + install to /Applications
-npm run release      # minutes: every installer (mac dmg/zip ×2 arch + win nsis/zip)
-node scripts/run-cli.mjs file.pdf --model sonnet --fast --out /tmp/out   # pipeline without the UI
+npm run dev          # hot reload: CSS swaps in place, renderer reloads, main/preload restart. F12 = DevTools
+npm run app          # build + pack this Mac's .app + install to /Applications (~5 s)
+npm test             # library, Deep Brief, WBS, run engine (fake Claude) and diagram tests
+npm run release      # every installer, uploaded to studylens-releases (see below)
 ```
 
-Use `dev` while iterating, `app` to try the real packaged app, `release` only to ship.
+Without the UI:
 
-| Path | Contents |
-| --- | --- |
-| `src/main/claude.ts` | Finds and launches the CLI. On Windows, `.cmd` files go through `cmd.exe`, and the prompt is always sent over stdin. |
-| `src/main/convert.ts` | Extracts DOCX, PPTX and XLSX with JSZip. |
-| `src/main/pipeline.ts` | One Process run: stream-json → live log, plus the fix rounds. |
-| `src/main/notebook.ts` | Reads `out/`, checks it, and assembles the template. |
-| `assets/GUIDE.md` | Instructions for Claude. Edit this file to change how the notebook is written. |
-| `assets/template.html` | The frame of the output notebook. |
-| `assets/EXAMPLE.html` | A sample slide and articles. |
+```bash
+node scripts/run-cli.mjs file.pdf --model sonnet --fast --out /tmp/out           # Tap to Explain
+npx electron scripts/run-cli-electron.cjs spec.pdf --brief --out /tmp/out         # Deep Brief (draws diagrams)
+npx electron scripts/run-cli-electron.cjs wbs.xlsx --wbs --out /tmp/out           # WBS Map
+```
+
+---
+
+## How it works
+
+```mermaid
+flowchart LR
+    DOC[(PDF · PPTX · DOCX · XLSX · images)] -->|copy · extract text & media| WD[Working folder]
+    WD -->|GUIDE.md + example + prompt| CC[claude -p]
+    CC -->|out/ files| CHK{App checks}
+    CHK -->|errors → --resume| CC
+    CHK -->|ok| ASM[Assemble into template]
+    ASM --> NB["project / name / name.html"]
+```
+
+1. **Prepare.** Each run gets its own working folder. PDFs and images are copied as they are; DOCX, PPTX and XLSX have their text extracted (`input-text/`) and their images pulled out (`input-media/`). Excel keeps sheet names and cell columns, skips hidden sheets, and shows numbers as Excel does.
+2. **Write.** `claude -p` reads the notebook type's `GUIDE.md` and example, then writes only into `out/`.
+3. **Check.** The app validates what came back, and sends any errors to the same session with `--resume` (up to 3 rounds):
+   - *Tap to Explain* — every link has its article, ids unique, tags balanced, the required blocks present.
+   - *Deep Brief* — structure, balanced tags, no dead anchors, tables wrapped, and every Mermaid diagram actually draws (rendered in a hidden window).
+   - *WBS Map* — Claude only says **how to read the sheet** (sheet, rows, columns) and writes the analysis; the app reads **every number from the workbook**, checks that each item is in exactly one module and that totals match the sheet's TOTAL row.
+4. **Assemble.** Content goes into the type's template (CSS, navigation, interactivity) and is saved as one `.html` that works offline.
+
+---
+
+## Safety
+
+The AI works on your files unattended, so the limits are set in code:
+
+- Claude runs with a fixed tool list (Read, Write, Edit, Glob, Grep, Task; WebSearch/WebFetch only when **Web fact-check** is on). **Bash is blocked**, permission mode `dontAsk`.
+- It writes only inside the run's working folder; the app copies the result out.
+- Input documents are treated as data, never as instructions.
+- Rich text from the AI is restricted to a small tag allow-list; notebooks have no access to the app (sandboxed preview on a separate origin).
+- WBS figures never come from the model — they are read from the spreadsheet and cross-checked.
+
+---
+
+## Releases and self-update
+
+- This repo (source) is **private**; installers and the update feed live in the public **[studylens-releases](https://github.com/haonguyenstech/studylens-releases)**.
+- To publish: bump `version` in `package.json`, add a `## X.Y.Z` section to `CHANGELOG.md`, run `npm run release` (macOS dmg/zip arm64 + x64, Windows nsis/zip x64; token from `gh auth token`).
+- The app checks for updates 4 s after launch and every 6 h (or **Settings → Updates**). macOS: downloads the zip for this chip, verifies its sha256, swaps the `.app` after quitting (rolls back on failure). Windows: silent NSIS install. A running notebook is stopped with its session kept, ready to continue.
+
+---
+
+## Project layout
+
+```
+src/main/
+├── index.ts          window, IPC, settings, library wiring, quick-look protocol (slpreview://)
+├── pipeline.ts       one notebook: prepare → claude -p → check / fix rounds → assemble
+├── runs.ts           runs: queue, pause / stop / continue, retry, history
+├── library.ts        projects and notebooks on disk (rename, move, tags, delete)
+├── convert.ts        PDF/images copied; DOCX/PPTX text + media
+├── xlsx.ts           Excel reader (sheets, columns, formulas, merges)
+├── notebook.ts       Tap to Explain: check + assemble
+├── brief.ts          Deep Brief: check + navigation + assemble
+├── diagrams.ts       Mermaid → SVG in a hidden window
+├── wbs.ts            WBS Map: read the sheet, check the spec, render
+├── claude.ts         find and launch the CLI (stdin prompt, Windows .cmd)
+└── updater.ts        GitHub Releases self-update
+src/renderer/         the UI (plain JS + CSS), i18n, fonts
+assets/               per notebook type: GUIDE.md (instructions for Claude), template.html, example
+  ├── brief/          Deep Brief
+  └── wbs/            WBS Map
+scripts/              dev, release, tests, fake Claude, CLI runners, WBS test workbook
+design/               logo source (logo.svg, render-logo.cjs)
+```
+
+App data lives in the Electron user-data folder: `projects.json`, `history.json`, `runs.json`, `settings.json` and the last working folders under `jobs/`.
+
+---
+
+## Credits
+
+- [Claude Code](https://claude.com/claude-code) — writes the notebooks
+- [Electron](https://www.electronjs.org/) (MIT) · [JSZip](https://stuk.github.io/jszip/) (MIT/GPLv3) · [Mermaid](https://mermaid.js.org/) (MIT)
+- [Google Sans Flex](https://fonts.google.com/) — SIL Open Font License
+
+<div align="center"><sub>Private project · All rights reserved.</sub></div>

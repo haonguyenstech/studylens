@@ -1,0 +1,93 @@
+{
+ "meta": {
+  "title": "RoomBook — bản đồ triển khai",
+  "mark": "RoomBook · WBS v1",
+  "eyebrow": "Phân tích từ tab WBS và Assumptions · RoomBook WBS.xlsx (tab ẩn WBS_old không dùng)",
+  "lede": "RoomBook đi qua 3 phase: <b>nền tảng → đặt phòng → ra mắt</b>, tổng 136 giờ (chưa gồm PM, QA). Khối lượng dồn vào Phase 2, và rủi ro lớn nhất nằm ở <b>đồng bộ lịch Microsoft 365</b> (2.4): 24 giờ trên một yêu cầu chưa chốt nguồn sự thật. Xem <a href=\"#f-f1\">F1</a>."
+ },
+ "source": {
+  "sheet": "WBS",
+  "firstRow": 2,
+  "lastRow": 13,
+  "totalRow": 14,
+  "cols": { "id": "A", "module": "B", "name": "C", "desc": "D", "notes": "E", "phase": "F", "priority": "G", "total": "K" },
+  "roles": [
+   { "key": "be", "label": "Back-end", "col": "H" },
+   { "key": "fe", "label": "Front-end", "col": "I" },
+   { "key": "mob", "label": "Mobile", "col": "J" }
+  ]
+ },
+ "phases": [
+  { "n": "1", "title": "Nền tảng", "sheetTitle": "Foundation", "summary": "Dựng môi trường Azure và đăng nhập một lần bằng Entra ID.", "goal": "Mọi tính năng sau có chỗ chạy và biết người dùng là ai.", "exit": "3 môi trường chạy; nhân viên đăng nhập được bằng tài khoản công ty.", "pre": "Không cần gì từ phase trước. Bên ngoài: subscription Azure và đăng ký app trên Entra ID, đều do IT của khách hàng làm." },
+  { "n": "2", "title": "Đặt phòng", "sheetTitle": "Booking", "summary": "Tìm, đặt, check-in phòng và đồng bộ với lịch Microsoft 365.", "goal": "Thay bảng tính đặt phòng hiện tại.", "exit": "Đặt phòng hiện trong Outlook trong 1 phút; phòng không check-in được trả lại sau 10 phút.", "pre": "Đăng nhập từ Phase 1. Quy tắc nguồn sự thật của lịch (2.4) phải chốt trước khi làm 2.2.", "warn": true },
+  { "n": "3", "title": "Ra mắt", "sheetTitle": "Launch", "summary": "Hỗ trợ UAT và phát hành lên App Store.", "goal": "Đưa RoomBook vào dùng.", "exit": "Khách hàng ký UAT; app có trên App Store.", "pre": "Phase 2 xong; tài khoản Apple Developer của khách hàng." }
+ ],
+ "modules": [
+  { "key": "m-platform", "phase": "1", "code": "1", "name": "Nền tảng & đăng nhập", "sheetName": "Platform", "rows": [3, 4],
+    "purpose": "Môi trường Azure (Dev / Staging / Prod) và đăng nhập một lần cho nhân viên.",
+    "cohesion": "high", "cohesionWhy": "Hai hạng mục cùng tạo nền cho mọi tính năng sau.",
+    "needs": ["Subscription Azure (khách hàng)", "Đăng ký app trên Entra ID (IT khách hàng)"], "unlocks": ["m-booking", "m-sync"],
+    "assumptions": ["Khách hàng cấp subscription Azure."], "risks": ["1.2 ghi \"pending\": chưa có tenant ID thì không thử được đăng nhập."] },
+  { "key": "m-booking", "phase": "2", "code": "2.1–2.3", "name": "Đặt phòng", "sheetName": "Booking", "rows": [6, 8],
+    "purpose": "Nhân viên tìm phòng trống, đặt, và check-in bằng QR khi tới.",
+    "cohesion": "high", "cohesionWhy": "Ba bước nối tiếp của một lần đặt phòng.",
+    "needs": ["m-platform"], "unlocks": ["m-launch"],
+    "assumptions": ["Đặt phòng hiện trong Outlook trong 1 phút (2.2)."], "risks": ["2.2 cần 2.4 để ghi vào Outlook, nhưng 2.4 chưa chốt nguồn sự thật (F1)."] },
+  { "key": "m-sync", "phase": "2", "code": "2.4", "name": "Đồng bộ lịch", "sheetName": "Sync", "rows": [9, 9],
+    "purpose": "Đồng bộ hai chiều lịch phòng với Microsoft 365.",
+    "cohesion": "high", "cohesionWhy": "Một hạng mục duy nhất.",
+    "needs": ["m-platform", "Quyền Graph API trên lịch phòng (IT khách hàng)"], "unlocks": ["m-booking", "m-launch"],
+    "assumptions": [], "risks": ["24 giờ BE trên yêu cầu \"not fully defined\": dễ vượt."] },
+  { "key": "m-launch", "phase": "3", "code": "3", "name": "UAT & phát hành", "sheetName": "Launch", "rows": [11, 12],
+    "purpose": "Hỗ trợ khách hàng kiểm thử nghiệm thu và đưa app lên App Store.",
+    "cohesion": "high", "cohesionWhy": "Chuỗi cuối: UAT rồi phát hành.",
+    "needs": ["Tài khoản Apple Developer (khách hàng)"], "unlocks": [],
+    "assumptions": [], "risks": ["3.2 có 4 giờ: App Store có thể trả về nhiều vòng."] }
+ ],
+ "external": [
+  { "key": "x-it", "name": "IT khách hàng", "sub": "Azure, Entra ID, Graph", "unlocks": ["m-platform", "m-sync"] },
+  { "key": "x-apple", "name": "Apple", "sub": "Developer account, duyệt app", "unlocks": ["m-launch"] }
+ ],
+ "inputs": [
+  { "what": "Tenant ID + đăng ký app Entra ID", "who": "IT khách hàng", "blocks": "1.2, 2.2, 2.4", "when": "Tuần đầu", "level": "high" },
+  { "what": "Quy tắc nguồn sự thật khi đặt lúc offline", "who": "Khách hàng", "blocks": "2.2, 2.4", "when": "Trước Phase 2", "level": "high" },
+  { "what": "Tài khoản Apple Developer", "who": "Khách hàng", "blocks": "3.2", "when": "Trước Phase 3", "level": "mid" }
+ ],
+ "journey": [
+  { "id": "1.2", "label": "Đăng nhập" },
+  { "id": "2.1", "label": "Tìm phòng" },
+  { "id": "2.2", "label": "Đặt phòng" },
+  { "id": "2.4", "label": "Ghi vào Outlook" },
+  { "id": "2.3", "label": "Check-in bằng QR" }
+ ],
+ "chain": [
+  { "label": "Tenant ID từ IT khách hàng", "note": "Chưa có ngày" },
+  { "label": "1.2 Đăng nhập Entra ID", "id": "1.2" },
+  { "label": "2.4 Đồng bộ lịch", "id": "2.4", "note": "Chờ chốt nguồn sự thật" },
+  { "label": "2.2 Đặt phòng", "id": "2.2" },
+  { "label": "3.1 UAT", "id": "3.1" },
+  { "label": "3.2 App Store", "id": "3.2", "note": "Apple duyệt" }
+ ],
+ "findings": [
+  { "id": "F1", "level": "critical", "title": "Đặt phòng phụ thuộc một yêu cầu chưa chốt",
+    "body": "<p><b>2.2</b> nghiệm thu bằng \"hiện trong Outlook trong 1 phút\", tức là cần <b>2.4</b>. Nhưng 2.4 ghi \"Source of truth for offline bookings is not fully defined\".</p><p><b>Đề xuất:</b> chốt quy tắc trước Phase 2; tách 2.4 thành đồng bộ một chiều (Must) và hai chiều (Should).</p>" },
+  { "id": "F2", "level": "warn", "title": "Không có giờ PM và QA", "body": "Không dòng nào cho quản lý dự án hay kiểm thử; 136 giờ chỉ là phát triển." }
+ ],
+ "questions": [
+  { "group": "Phạm vi", "text": "Đặt phòng lúc offline: bên nào thắng khi trùng?" },
+  { "group": "Lịch", "text": "Khi nào IT cấp tenant ID và quyền Graph?" }
+ ],
+ "checks": [
+  { "status": "fail", "title": "Quy tắc 100% — đủ phạm vi", "text": "Thiếu PM, QA và thiết kế UI." },
+  { "status": "ok", "title": "Mã duy nhất, thể hiện cấp", "text": "Mã 1.1, 2.1… rõ cấp; hạng mục Future chưa có mã." },
+  { "status": "ok", "title": "Đặt tên theo sản phẩm bàn giao", "text": "Tên là thứ bàn giao (Room search, Book a room)." },
+  { "status": "warn", "title": "Phụ thuộc được ghi tường minh", "text": "Phụ thuộc 2.2 → 2.4 chỉ suy ra từ tiêu chí nghiệm thu." },
+  { "status": "fail", "title": "Người chịu trách nhiệm", "text": "Không có cột owner." }
+ ],
+ "confidence": { "2.2": ["mid", "Phụ thuộc 2.4 (chưa chốt)."] },
+ "futureNotes": { "Floor plans": "Chưa có mã và mô tả phạm vi." },
+ "assumptionsSheet": { "sheet": "Assumptions", "rows": [
+  { "name": "Cloud", "value": "Azure, West Europe, single region", "status": "ok", "note": "Khớp 1.1." },
+  { "name": "Users", "value": "~600 staff, 14 offices", "status": "warn", "note": "WBS không có hạng mục kiểm thử tải cho 600 người." }
+ ] }
+}

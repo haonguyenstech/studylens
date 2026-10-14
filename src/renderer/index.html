@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src slpreview:">
 <title>StudyLens</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -13,22 +13,39 @@
   <aside class="sidebar">
     <div class="side-top drag">
       <span class="lights-space"></span>
-      <button class="icon-btn no-drag" id="btn-new-top" type="button" data-i18n-title="nav.new" data-icon="plus"></button>
+      <button class="icon-btn no-drag" id="btn-new-top" type="button" data-i18n-title="lib.newProject" data-icon="plus"></button>
     </div>
-    <div class="brand">
-      <img src="icon.png" alt="" width="34" height="34">
+    <div class="brand" id="brand">
+      <svg class="logo play" viewBox="80 80 900 900" width="34" height="34" aria-hidden="true">
+      <defs>
+      <linearGradient id="bsl-g" gradientUnits="userSpaceOnUse" x1="250" y1="190" x2="880" y2="840">
+      <stop offset="0" stop-color="#6E6BFF"/>
+      <stop offset="0.55" stop-color="#B05CFF"/>
+      <stop offset="1" stop-color="#FF7A59"/>
+      </linearGradient>
+      <linearGradient id="bsl-lit" gradientUnits="userSpaceOnUse" x1="370" y1="0" x2="720" y2="0">
+      <stop offset="0" stop-color="#FFD66E"/>
+      <stop offset="1" stop-color="#FF8A5C"/>
+      </linearGradient>
+      <clipPath id="bsl-in"><circle cx="590" cy="512" r="234"/></clipPath>
+      </defs>
+      <g class="sl-ring"><circle cx="590" cy="512" r="290" fill="none" stroke="url(#bsl-g)" stroke-width="112"/></g>
+      <g class="sl-line"><rect x="96" y="456" width="624" height="112" rx="56" fill="url(#bsl-g)"/></g>
+      <g clip-path="url(#bsl-in)"><g class="sl-line"><rect class="sl-lit" x="96" y="456" width="624" height="112" rx="56" fill="url(#bsl-lit)"/></g></g>
+      <path class="sl-spark" d="M880 96c7 54 31 78 85 85-54 7-78 31-85 85-7-54-31-78-85-85 54-7 78-31 85-85Z" fill="url(#bsl-g)"/>
+      </svg>
       <div><b>StudyLens</b><span data-i18n="brand.tag"></span></div>
     </div>
     <label class="search">
       <i data-icon="search"></i>
       <input id="q" type="search" data-i18n-ph="nav.search" autocomplete="off">
     </label>
-    <button class="side-item new" id="nav-new" type="button">
-      <span class="tile new-tile"><i data-icon="plus"></i></span>
-      <span class="txt"><b data-i18n="nav.new"></b><small data-i18n="nav.newSub"></small></span>
+    <button class="side-item new" id="nav-home" type="button">
+      <span class="tile new-tile"><i data-icon="grid"></i></span>
+      <span class="txt"><b data-i18n="nav.home"></b><small id="nav-home-sub"></small></span>
     </button>
     <div class="seg side-tabs" id="side-tab" role="tablist">
-      <button type="button" data-v="notes"><span data-i18n="nav.tabNotes"></span></button>
+      <button type="button" data-v="notes"><span data-i18n="nav.tabLibrary"></span></button>
       <button type="button" data-v="runs"><span data-i18n="nav.tabRuns"></span><span class="tab-badge" id="runs-badge" hidden></span></button>
     </div>
     <div class="side-list" id="history"></div>
@@ -48,16 +65,40 @@
 
   <!-- ===== Main ===== -->
   <main class="main">
+    <section class="preview" id="preview" hidden aria-modal="false" role="region">
+      <header class="pv-bar drag">
+        <button class="icon-btn no-drag" id="pv-close" type="button" data-icon="x" data-i18n-title="pv.close"></button>
+        <div class="pv-title"><b id="pv-name"></b><small id="pv-sub"></small></div>
+        <div class="pv-tabs no-drag" id="pv-tabs" role="tablist"></div>
+        <div class="pv-acts no-drag">
+          <button class="icon-btn" id="pv-reveal" type="button" data-icon="folder"></button>
+          <button class="btn" id="pv-open" type="button"><i data-icon="open"></i><span data-i18n="pv.external"></span></button>
+        </div>
+      </header>
+      <div class="pv-body">
+        <iframe id="pv-frame" title="" referrerpolicy="no-referrer"></iframe>
+        <div class="pv-msg" id="pv-msg" hidden></div>
+        <div class="pv-load" id="pv-load" hidden><span class="r-spin"></span></div>
+      </div>
+    </section>
     <header class="toolbar drag">
-      <div class="crumb"><span id="page-title"></span><span class="crumb-sub" id="page-sub"></span></div>
+      <div class="crumb"><button class="crumb-parent no-drag" id="crumb-parent" type="button" hidden></button><span id="page-title"></span><span class="crumb-sub" id="page-sub"></span></div>
+      <div class="hdr-right">
+      <button class="icon-btn no-drag theme-btn" id="hdr-theme" type="button"></button>
       <div class="seg seg-mini no-drag" id="hdr-lang" role="radiogroup" data-i18n-aria="set.uiLang">
         <button type="button" data-v="vi" title="Tiếng Việt">VI</button>
         <button type="button" data-v="en" title="English">EN</button>
       </div>
+      </div>
     </header>
 
-    <!-- New notebook page -->
-    <section class="page" id="page-new">
+    <!-- Home: every project (the top level), then notebooks not in a project yet -->
+    <section class="page detail home-page" id="page-home">
+      <div class="detail-in" id="home-view"></div>
+    </section>
+
+    <!-- New notebook page (always inside a project) -->
+    <section class="page" id="page-new" hidden>
       <div class="col">
         <div class="card" id="card-files">
           <div class="card-h"><b data-i18n="files.title"></b><span class="hint" id="files-count"></span></div>
@@ -90,6 +131,25 @@
         <div class="card" id="card-opts">
           <div class="card-h"><b data-i18n="opts.title"></b></div>
           <div class="field">
+            <span data-i18n="fmt.label"></span>
+            <div class="formats" id="o-format" role="radiogroup" data-i18n-aria="fmt.label">
+              <button type="button" data-v="tap">
+                <span class="fmt-art art-tap" aria-hidden="true"><i class="pg"><em></em><em class="hit"></em><em></em><em class="s"></em></i><i class="dr"><em></em><em></em><em class="s"></em></i></span>
+                <span class="fmt-txt"><b>Tap to Explain</b><small data-i18n="fmt.tapSub"></small><span data-i18n="fmt.tapDesc"></span></span>
+              </button>
+              <button type="button" data-v="brief">
+                <span class="fmt-art art-brief" aria-hidden="true"><i class="rl"><em></em><em></em><em></em><em></em></i><i class="pg"><em class="h"></em><em></em><em class="s"></em><span class="dg"><u></u><u></u><u></u></span><em></em></i></span>
+                <span class="fmt-txt"><b>Deep Brief</b><small data-i18n="fmt.briefSub"></small><span data-i18n="fmt.briefDesc"></span></span>
+              </button>
+              <button type="button" data-v="wbs">
+                <span class="fmt-art art-wbs" aria-hidden="true"><i class="pg"><em class="g g1"></em><em class="g g2"></em><em class="g g3"></em><em class="g g4"></em><span class="lk"></span></i></span>
+                <span class="fmt-txt"><b>WBS Map</b><small data-i18n="fmt.wbsSub"></small><span data-i18n="fmt.wbsDesc"></span></span>
+              </button>
+            </div>
+            <p class="fmt-warn" id="fmt-warn" hidden><i data-icon="warn"></i><span></span></p>
+          </div>
+          <p class="save-hint" id="o-save-hint"></p>
+          <div class="field">
             <span class="field-h"><span id="name-label" data-i18n="opts.name"></span><small class="auto-tag" id="title-auto" data-i18n="opts.nameAuto" hidden></small></span>
             <input id="o-title" type="text" data-i18n-ph="opts.namePh" data-i18n-aria="opts.name">
             <ol class="names" id="names" hidden></ol>
@@ -99,14 +159,6 @@
             <div class="seg" id="o-lang" role="radiogroup">
               <button type="button" data-v="Tiếng Việt">Tiếng Việt</button>
               <button type="button" data-v="English">English</button>
-            </div>
-          </div>
-          <div class="field">
-            <span data-i18n="opts.saveTo"></span>
-            <div class="row">
-              <output id="o-dir" class="path"></output>
-              <button id="o-dir-pick" class="btn" type="button" data-i18n="opts.choose"></button>
-              <button id="o-dir-reset" class="btn" type="button" data-i18n="opts.default" hidden></button>
             </div>
           </div>
           <label class="toggle">
@@ -126,8 +178,8 @@
           <div class="idle" id="idle">
             <span class="idle-ico" data-icon="lens"></span>
             <b data-i18n="run.idle"></b>
-            <span data-i18n="run.idleText"></span>
-            <small data-i18n="run.idleSmall"></small>
+            <span id="idle-text"></span>
+            <small id="idle-small"></small>
           </div>
           <button class="active-run" id="active-run" type="button" hidden></button>
           <div class="recent-runs" id="recent-runs" hidden>
@@ -143,13 +195,20 @@
       <div class="run-in" id="run-view"></div>
     </section>
 
+    <!-- Project page: its notebooks, runs in progress, and actions -->
+    <section class="page detail project-page" id="page-project" hidden>
+      <div class="detail-in" id="project-view"></div>
+    </section>
+
     <!-- History detail page -->
     <section class="page detail" id="page-detail" hidden>
       <div class="detail-in">
         <div class="d-head">
           <span class="tile big" id="d-tile"></span>
           <div class="d-title"><h2 id="d-title"></h2><span id="d-sub"></span></div>
+          <button class="proj-chip" id="d-project" type="button" hidden></button>
         </div>
+        <div class="d-tags" id="d-tags"></div>
         <div class="d-actions" id="d-actions"></div>
         <div class="stats" id="d-stats"></div>
         <div class="card" id="d-error-card" hidden>
@@ -169,49 +228,73 @@
   </main>
 </div>
 
-<!-- Settings: AI model (engine status, model) and interface language -->
+<!-- Settings: grouped lists (AI engine, model, storage, updates), like macOS System Settings -->
 <dialog id="dlg-settings" class="settings">
   <div class="set-head">
+    <span class="set-head-ico" data-icon="gear"></span>
     <h2 data-i18n="set.title"></h2>
     <button class="btn prominent" id="set-close" type="button" data-i18n="set.close"></button>
   </div>
   <div class="set-body">
     <section class="set-sec">
-      <div class="set-sec-h"><b data-i18n="up.section"></b></div>
-      <div class="engine">
-        <span class="engine-ico app-ico"><img src="icon.png" alt="" width="30" height="30"></span>
-        <div class="engine-txt"><b>StudyLens <span id="up-ver"></span></b><span id="up-status"></span></div>
-        <button class="btn" id="up-check" type="button"><i data-icon="redo"></i><span data-i18n="up.check"></span></button>
+      <h3 class="set-label" data-i18n="set.ai"></h3>
+      <div class="group">
+        <div class="g-row g-engine" id="engine">
+          <span class="engine-ico"><img src="claude.svg" alt="" width="22" height="22"></span>
+          <div class="g-txt"><b data-i18n="set.engine"></b><small data-i18n="set.engineSub"></small></div>
+          <span class="status-pill" id="eng-status"><span class="dot"></span><span class="lbl"></span></span>
+          <button class="icon-btn" id="eng-check" type="button" data-i18n-title="set.recheck" data-i18n-aria="set.recheck" data-icon="redo"></button>
+        </div>
+        <div class="g-row g-kv"><span data-i18n="set.version"></span><code id="eng-version">—</code></div>
+        <div class="g-row g-kv"><span data-i18n="set.path"></span><code id="eng-path">—</code></div>
+        <p class="eng-err g-err" id="eng-err" hidden></p>
       </div>
+      <p class="set-foot" data-i18n="set.aiSub"></p>
     </section>
+
     <section class="set-sec">
-      <div class="set-sec-h"><b data-i18n="set.ai"></b><span data-i18n="set.aiSub"></span></div>
-      <div class="engine" id="engine">
-        <span class="engine-ico"><img src="claude.svg" alt="" width="22" height="22"></span>
-        <div class="engine-txt">
-          <b data-i18n="set.engine"></b>
-          <span data-i18n="set.engineSub"></span>
+      <h3 class="set-label" data-i18n="set.model"></h3>
+      <div class="models" id="o-model" role="radiogroup" data-i18n-aria="set.model">
+        <button type="button" data-v=""><b data-i18n="set.modelDefault"></b><small data-i18n="set.mDefaultSub"></small><span class="m-meter"><span data-i18n="set.mQuality"></span><i style="--v:2"></i><span data-i18n="set.mSpeed"></span><i class="sp" style="--v:2"></i></span></button>
+        <button type="button" data-v="opus"><b>Opus</b><small data-i18n="set.mOpusSub"></small><span class="m-meter"><span data-i18n="set.mQuality"></span><i style="--v:3"></i><span data-i18n="set.mSpeed"></span><i class="sp" style="--v:1"></i></span></button>
+        <button type="button" data-v="sonnet"><b>Sonnet</b><small data-i18n="set.mSonnetSub"></small><span class="m-meter"><span data-i18n="set.mQuality"></span><i style="--v:2"></i><span data-i18n="set.mSpeed"></span><i class="sp" style="--v:2"></i></span></button>
+        <button type="button" data-v="haiku"><b>Haiku</b><small data-i18n="set.mHaikuSub"></small><span class="m-meter"><span data-i18n="set.mQuality"></span><i style="--v:1"></i><span data-i18n="set.mSpeed"></span><i class="sp" style="--v:3"></i></span></button>
+      </div>
+      <p class="set-foot" data-i18n="set.modelSub"></p>
+    </section>
+
+    <section class="set-sec">
+      <h3 class="set-label" data-i18n="set.look"></h3>
+      <div class="theme-cards" id="set-theme" role="radiogroup" data-i18n-aria="set.look">
+        <button type="button" class="theme-card" data-v="system" role="radio"><span class="th-art sys"><span class="th-win l"><i></i><b></b><b></b></span><span class="th-win d"><i></i><b></b><b></b></span></span><span class="th-name" data-i18n="th.system"></span></button>
+        <button type="button" class="theme-card" data-v="light" role="radio"><span class="th-art"><span class="th-win l"><i></i><b></b><b></b></span></span><span class="th-name" data-i18n="th.light"></span></button>
+        <button type="button" class="theme-card" data-v="dark" role="radio"><span class="th-art"><span class="th-win d"><i></i><b></b><b></b></span></span><span class="th-name" data-i18n="th.dark"></span></button>
+      </div>
+      <p class="set-foot" data-i18n="set.lookSub"></p>
+    </section>
+
+    <section class="set-sec">
+      <h3 class="set-label" data-i18n="set.storage"></h3>
+      <div class="group">
+        <div class="g-row">
+          <span class="g-ico" data-icon="folder"></span>
+          <div class="g-txt"><b data-i18n="set.projRoot"></b><small class="g-path" id="set-root"></small></div>
+          <button class="btn" id="set-root-pick" type="button" data-i18n="opts.choose"></button>
         </div>
-        <span class="status-pill" id="eng-status"><span class="dot"></span><span class="lbl"></span></span>
       </div>
-      <dl class="kv eng-kv" id="eng-kv">
-        <dt data-i18n="set.version"></dt><dd id="eng-version">—</dd>
-        <dt data-i18n="set.path"></dt><dd id="eng-path">—</dd>
-      </dl>
-      <p class="eng-err" id="eng-err" hidden></p>
-      <div class="row eng-actions">
-        <button class="btn" id="eng-check" type="button"><i data-icon="redo"></i><span data-i18n="set.recheck"></span></button>
-      </div>
-      <div class="field">
-        <span data-i18n="set.model"></span>
-        <div class="seg" id="o-model" role="radiogroup">
-          <button type="button" data-v="" data-i18n="set.modelDefault"></button>
-          <button type="button" data-v="opus">Opus</button>
-          <button type="button" data-v="sonnet">Sonnet</button>
-          <button type="button" data-v="haiku">Haiku</button>
+      <p class="set-foot" data-i18n="set.projRootSub"></p>
+    </section>
+
+    <section class="set-sec">
+      <h3 class="set-label" data-i18n="up.section"></h3>
+      <div class="group">
+        <div class="g-row">
+          <span class="engine-ico app-ico"><img src="icon.png" alt="" width="30" height="30"></span>
+          <div class="g-txt"><b>StudyLens <span id="up-ver"></span></b><small id="up-status"></small></div>
+          <button class="btn" id="up-check" type="button"><i data-icon="redo"></i><span data-i18n="up.check"></span></button>
         </div>
-        <small class="field-sub" data-i18n="set.modelSub"></small>
       </div>
+      <p class="set-foot" data-i18n="set.upSub"></p>
     </section>
   </div>
 </dialog>
@@ -232,10 +315,72 @@
   </div>
 </dialog>
 
+<dialog id="dlg-project" class="project-dlg">
+  <form method="dialog" id="pj-form">
+    <div class="pj-head">
+      <span class="tile big folder-tile pj-tile" id="pj-tile"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4.2l2 2H19a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5Z"/></svg></span>
+      <div><h2 id="pj-title"></h2><p id="pj-sub"></p></div>
+    </div>
+    <label class="field">
+      <span data-i18n="pj.name"></span>
+      <input type="text" id="pj-name" data-i18n-ph="pj.namePh" autocomplete="off" maxlength="80">
+    </label>
+    <div class="field">
+      <span data-i18n="pj.color"></span>
+      <div class="swatches" id="pj-colors" role="radiogroup" data-i18n-aria="pj.color"></div>
+    </div>
+    <div class="field" id="pj-where">
+      <span data-i18n="pj.where"></span>
+      <div class="row">
+        <output id="pj-dir" class="path"></output>
+        <button id="pj-dir-pick" class="btn" type="button" data-i18n="opts.choose"></button>
+      </div>
+    </div>
+    <p class="eng-err" id="pj-err" hidden></p>
+    <div class="row end">
+      <button class="btn" value="cancel" type="submit" formnovalidate data-i18n="dlg.cancel"></button>
+      <button class="btn prominent" value="ok" type="submit" id="pj-ok"></button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-prompt">
+  <form method="dialog">
+    <h2 id="pr-title"></h2>
+    <label class="field"><input type="text" id="pr-input" autocomplete="off" maxlength="120"></label>
+    <p class="field-sub pr-sub" id="pr-sub"></p>
+    <div class="row end">
+      <button class="btn" value="cancel" type="submit" data-i18n="dlg.cancel"></button>
+      <button class="btn prominent" value="ok" type="submit" id="pr-ok"></button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-tags" class="tags-dlg">
+  <form method="dialog">
+    <h2 id="tg-title"></h2>
+    <p class="field-sub" data-i18n="tg.sub"></p>
+    <div class="tag-field" id="tg-field">
+      <span class="tag-chips" id="tg-chips"></span>
+      <input type="text" id="tg-input" autocomplete="off" maxlength="40" data-i18n-ph="tg.ph">
+    </div>
+    <div class="tg-suggest" id="tg-suggest-wrap" hidden>
+      <span class="tg-suggest-h" data-i18n="tg.suggest"></span>
+      <div class="tag-chips" id="tg-suggest"></div>
+    </div>
+    <div class="tg-tpl" id="tg-tpl"></div>
+    <div class="row end">
+      <button class="btn" value="cancel" type="submit" data-i18n="dlg.cancel"></button>
+      <button class="btn prominent" value="ok" type="submit" id="tg-ok" data-i18n="tg.save"></button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="dlg-confirm">
   <form method="dialog">
     <h2 id="cf-title"></h2>
     <p id="cf-text"></p>
+    <label class="cf-check" id="cf-check" hidden><input type="checkbox" id="cf-check-box"><span class="box" aria-hidden="true"></span><span id="cf-check-text"></span></label>
     <div class="row end">
       <button class="btn" value="cancel" type="submit" data-i18n="cf.cancel"></button>
       <button class="btn prominent danger-fill" value="ok" type="submit" id="cf-ok"></button>

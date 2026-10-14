@@ -1,0 +1,36 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+<style>body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}#stage{position:absolute;left:0;top:0;width:1400px}</style>
+<script src="mermaid.min.js"></script>
+</head><body><div id="stage"></div>
+<script>
+// Called from the main process: draw each Mermaid source to an SVG string, or report why it failed.
+mermaid.initialize({
+  startOnLoad: false, securityLevel: "strict", theme: "neutral",
+  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif',
+  htmlLabels: false, flowchart: { htmlLabels: false, useMaxWidth: true }, sequence: { useMaxWidth: true },
+});
+window.renderAll = async (list) => {
+  const out = [];
+  for (const [i, code] of list.entries()) {
+    const id = "dg" + (i + 1);
+    try {
+      await mermaid.parse(code);
+      let { svg } = await mermaid.render(id, code, document.getElementById("stage"));
+      // A long left-to-right chain shrinks to unreadable text when fitted to the page: draw it top-down instead.
+      const vb = /viewBox="[\d.\-]+ [\d.\-]+ ([\d.]+) ([\d.]+)"/.exec(svg);
+      const wide = vb && +vb[1] / +vb[2] > 4.5 && +vb[1] > 1100;
+      if (wide && /^\s*(flowchart|graph)\s+(LR|RL)\b/.test(code)) {
+        const td = code.replace(/^(\s*(?:flowchart|graph)\s+)(LR|RL)\b/, "$1TD");
+        svg = (await mermaid.render(id, td, document.getElementById("stage"))).svg;
+      }
+      out.push({ svg });
+    } catch (e) {
+      out.push({ error: String((e && (e.message || e.str)) || e).split("\n").slice(0, 4).join(" ").slice(0, 400) });
+      document.getElementById("d" + id)?.remove();
+    }
+  }
+  return out;
+};
+</script></body></html>

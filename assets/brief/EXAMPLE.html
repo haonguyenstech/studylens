@@ -1,0 +1,85 @@
+<!-- Mẫu Deep Brief (nội dung hư cấu): masthead, một phần, ba mục. Bắt chước cách dùng class và cách viết. -->
+<header class="masthead">
+  <div class="eyebrow">Bản phân tích · dựng từ RFP v2.1 (12/03/2026) và Phụ lục kỹ thuật A</div>
+  <h1>RoomBook — Nền tảng đặt phòng họp cho văn phòng lai</h1>
+  <p class="lede">
+    RoomBook thay bảng tính đặt phòng hiện tại bằng một app di động và một trang web quản trị. Điểm khó nhất
+    <strong>không nằm ở giao diện</strong> mà ở việc đồng bộ lịch với Microsoft 365 trong khi phòng vẫn phải
+    đặt được khi mất mạng. RFP và Phụ lục A <strong>mâu thuẫn nhau</strong> về việc ai là nguồn sự thật của lịch;
+    bản này chỉ ra chỗ đó ở mục 3 và mục 6.
+  </p>
+  <dl class="facts">
+    <div class="fact"><dt>Số văn phòng</dt><dd>14 · 3 quốc gia</dd></div>
+    <div class="fact"><dt>Phòng họp</dt><dd>~420 phòng</dd></div>
+    <div class="fact"><dt>Đỉnh tải</dt><dd><b>9:00</b> sáng thứ Hai</dd></div>
+    <div class="fact"><dt>Tích hợp bắt buộc</dt><dd>Microsoft 365, Entra ID</dd></div>
+  </dl>
+</header>
+
+<section class="part" data-short="Nền tảng"><div class="part-bar"><span class="pn">PHẦN I</span><h2>Nền tảng — hiểu bài toán trước khi hiểu hệ thống</h2></div></section>
+
+<article class="blk" id="s1" data-short="Vì sao cần RoomBook">
+  <h3>1. Vì sao cần RoomBook</h3>
+  <p>
+    Mục này trả lời: <em>vấn đề hiện tại tốn kém ở đâu</em>. RFP §2.3 nêu ba triệu chứng, và cả ba đều quy về
+    một nguyên nhân: lịch phòng nằm ở hai nơi không nói chuyện với nhau.
+  </p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Triệu chứng</th><th>Con số trong RFP</th><th>Nguyên nhân gốc</th></tr></thead>
+      <tbody>
+        <tr><td>Đặt trùng phòng</td><td>~60 lần/tháng (§2.3)</td><td>Bảng tính và Outlook không đồng bộ</td></tr>
+        <tr><td>Phòng đặt nhưng bỏ trống</td><td>31% giờ đã đặt (§2.4)</td><td>Không có bước xác nhận có mặt</td></tr>
+        <tr><td>Khách không tìm được phòng</td><td>Không định lượng</td><td>Không có sơ đồ tầng</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="read">
+    <span class="tag">Điểm cần nắm</span>
+    <p>
+      Mục tiêu đo được duy nhất trong RFP là <span class="quote">&ldquo;reduce no-show bookings below 10% within six
+      months&rdquo;</span> (§2.5). Mọi tính năng "xác nhận có mặt" ở <a href="#s2">mục 2</a> đều phục vụ con số này.
+    </p>
+  </div>
+</article>
+
+<article class="blk" id="s2" data-short="Luồng đặt và xác nhận">
+  <h3>2. Luồng đặt phòng và xác nhận có mặt</h3>
+  <p>Ai gọi ai, theo thứ tự nào, và <strong>chuyện gì xảy ra khi mất mạng</strong>.</p>
+  <div class="frame"><pre class="mermaid">
+sequenceDiagram
+  participant U as Người dùng
+  participant M as App di động
+  participant A as RoomBook API
+  participant O as Microsoft 365
+  U->>M: Chọn phòng và giờ
+  M->>A: POST /bookings
+  A->>O: Tạo sự kiện trong lịch phòng
+  O-->>A: eventId
+  A-->>M: Đặt thành công
+  Note over M,A: Đến giờ họp
+  U->>M: Quét mã QR tại phòng
+  M->>A: POST /bookings/{id}/check-in
+  </pre></div>
+  <div class="figcap"><b>Nguồn</b><code>RFP §4.2 · Phụ lục A §1.3</code></div>
+  <div class="note rule">
+    <span class="tag">Quy tắc</span>
+    <p>Không xác nhận có mặt trong 10 phút đầu thì phòng tự được trả lại (RFP §4.2.3). Con số 10 phút là cấu hình được theo văn phòng.</p>
+  </div>
+  <div class="note flag">
+    <span class="tag">Cẩn thận</span>
+    <p>Phụ lục A §1.3 cho phép đặt khi mất mạng, nhưng không nói cách xử lý khi hai người đặt cùng phòng lúc offline. Xem câu hỏi 01 ở <a href="#s3">mục 3</a>.</p>
+  </div>
+</article>
+
+<article class="blk" id="s3" data-short="Câu hỏi còn phải chốt">
+  <h3>3. Câu hỏi còn phải chốt</h3>
+  <div class="qa">
+    <div class="item"><div class="num">01</div><div class="body">
+      <span class="who">Nghiêm trọng · ảnh hưởng kiến trúc</span>
+      <p class="ask">Khi đặt phòng lúc mất mạng bị trùng, bên nào thắng?</p>
+      <p class="why">RFP §4.5 nói Microsoft 365 là <em>nguồn sự thật</em>, nhưng Phụ lục A §1.3 cho phép xác nhận ngay
+      trên máy. <strong>Cần chốt: xác nhận offline là tạm thời hay chắc chắn?</strong></p>
+    </div></div>
+  </div>
+</article>

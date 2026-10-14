@@ -4,7 +4,7 @@
 // - main/preload/shared (TypeScript): `tsc --watch` recompiles, then Electron restarts
 // Closing the app window ends the dev session.
 import { spawn, spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, watch } from "node:fs";
+import { copyFileSync, cpSync, existsSync, mkdirSync, statSync, watch } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -60,7 +60,8 @@ function mirror(srcDir, outDir, skip = () => false) {
         const from = path.join(srcDir, f);
         if (!existsSync(from)) continue;
         mkdirSync(path.dirname(path.join(outDir, f)), { recursive: true });
-        copyFileSync(from, path.join(outDir, f));
+        if (statSync(from).isDirectory()) cpSync(from, path.join(outDir, f), { recursive: true });   // a new folder (e.g. fonts/)
+        else copyFileSync(from, path.join(outDir, f));
         say(`updated ${path.relative(root, from)}`);
       }
       pending.clear();

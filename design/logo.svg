@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- StudyLens mark, free-standing (no tile): a lens ring, and a line of text running into it; inside the
+       lens the line lights up (the "tap a line, get it explained" idea); a spark for the insight.
+       In the app: the line slides in (.sl-line), its lit part sweeps on (.sl-lit), the ring's colours turn
+       (.sl-ring) and the spark twinkles (.sl-spark). -->
+  <defs>
+    <linearGradient id="sl-g" gradientUnits="userSpaceOnUse" x1="250" y1="190" x2="880" y2="840">
+      <stop offset="0" stop-color="#6E6BFF"/>
+      <stop offset="0.55" stop-color="#B05CFF"/>
+      <stop offset="1" stop-color="#FF7A59"/>
+    </linearGradient>
+    <linearGradient id="sl-lit" gradientUnits="userSpaceOnUse" x1="370" y1="0" x2="720" y2="0">
+      <stop offset="0" stop-color="#FFD66E"/>
+      <stop offset="1" stop-color="#FF8A5C"/>
+    </linearGradient>
+    <clipPath id="sl-in"><circle cx="590" cy="512" r="234"/></clipPath>
+  </defs>
+
+  <g class="sl-ring"><circle cx="590" cy="512" r="290" fill="none" stroke="url(#sl-g)" stroke-width="112"/></g>
+  <g class="sl-line"><rect x="96" y="456" width="624" height="112" rx="56" fill="url(#sl-g)"/></g>
+  <g clip-path="url(#sl-in)"><g class="sl-line"><rect class="sl-lit" x="96" y="456" width="624" height="112" rx="56" fill="url(#sl-lit)"/></g></g>
+  <path class="sl-spark" d="M880 96c7 54 31 78 85 85-54 7-78 31-85 85-7-54-31-78-85-85 54-7 78-31 85-85Z" fill="url(#sl-g)"/>
+</svg>

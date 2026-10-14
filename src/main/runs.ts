@@ -21,6 +21,8 @@ export interface RunHost {
   removed(id: string): void;
   tick(t: RunTick): void;                    // live activity/log → renderer
   notebookDone(run: Run, item: RunItem): void;
+  outputDir?(run: Run): string;
+  draw?(codes: string[]): Promise<{ svg?: string; error?: string }[]>;   // Mermaid → SVG (Deep Brief)              // where a finished notebook goes (the project folder, if any)
 }
 
 export class RunManager {
@@ -65,7 +67,27 @@ export class RunManager {
     this.save();
   }
   get(id: string) { return this.runs.find((r) => r.id === id); }
+
+  /** A notebook file moved (renamed, or moved into a project): runs that made it point to the new place. */
+  relocate(from: string, to: string) {
+    for (const r of this.runs) {
+      let hit = false;
+      for (const it of r.items) if (it.output === from) { it.output = to; hit = true; }
+      if (hit) { this.save(); this.host.publish(r); }
+    }
+  }
+  /** Outputs that are no longer on disk: take the library's current path for the same notebook, if it has one. */
+  repairOutputs(find: (run: Run, item: RunItem) => string | undefined) {
+    let dirty = false;
+    for (const r of this.runs) for (const it of r.items) {
+      if (!it.output || existsSync(it.output)) continue;
+      const now = find(r, it);
+      if (now && now !== it.output && existsSync(now)) { it.output = now; dirty = true; }
+    }
+    if (dirty) this.save();
+  }
   isBusy() { return !!this.active || this.driving.size > 0; }
+  activeRun() { return this.active?.run; }
 
   // ---------- create ----------
   create(req: RunRequest): Run {
@@ -79,7 +101,8 @@ export class RunManager {
       id, title: req.title || items[0].title || path.basename(req.files[0]),
       mode: items.length > 1 ? "separate" : "merge",
       state: "running", createdAt: now, updatedAt: now,
-      options: { model: req.model, research: req.research, lang: req.lang, outputDir: req.outputDir },
+      options: { model: req.model, research: req.research, lang: req.lang, outputDir: req.outputDir, format: req.format === "brief" || req.format === "wbs" ? req.format : "tap" },
+      ...(req.projectId ? { projectId: req.projectId } : {}),
       items,
     };
     this.runs.unshift(run);
@@ -231,10 +254,11 @@ export class RunManager {
 
     const costBefore = it.costUsd;
     const job = new Job(
-      { files: it.files, title: it.title, ...run.options },
+      { files: it.files, title: it.title, ...run.options, outputDir: this.host.outputDir?.(run) ?? run.options.outputDir },
       claude.path, this.host.assetsDir, it.workDir!,
       (e) => this.onJobEvent(run, it, e, costBefore),
       resume,
+      this.host.draw,
     );
     this.active = { run, item: it, job };
     await job.run();

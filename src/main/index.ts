@@ -1,22 +1,32 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, net, protocol, shell } from "electron";
+import { pathToFileURL } from "node:url";
 import { Lang, setLang, t } from "./i18n";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, watch, writeFileSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import path from "node:path";
-import { HistoryItem, ItemAction, Run, RunAction, RunRequest, Settings } from "../shared/types";
+import { ItemAction, Run, RunAction, RunRequest, Settings } from "../shared/types";
 import { findClaude } from "./claude";
 import { ACCEPTED } from "./convert";
+import { Library, LibraryError } from "./library";
 import { RunManager } from "./runs";
+import { renderMermaid } from "./diagrams";
+import { inOwnFolder } from "./paths";
 import { checkForUpdate, installUpdate, UpdateInfo } from "./updater";
 
 app.setName("StudyLens");
+// In-app preview: notebooks and source files are served as slpreview://f/<absolute path>, own origin (not the app's).
+protocol.registerSchemesAsPrivileged([{ scheme: "slpreview", privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 // Screenshot/test runs keep their own settings and history, away from the real ones.
 if (process.env.STUDYLENS_SHOOT) {
   mkdirSync(path.join(process.env.STUDYLENS_SHOOT, "userdata"), { recursive: true });
   app.setPath("userData", path.join(process.env.STUDYLENS_SHOOT, "userdata"));
 }
 // Dev: STUDYLENS_THEME=light|dark forces the theme (used with STUDYLENS_SHOOT).
-if (process.env.STUDYLENS_THEME === "light" || process.env.STUDYLENS_THEME === "dark") nativeTheme.themeSource = process.env.STUDYLENS_THEME;
+const forcedTheme = process.env.STUDYLENS_THEME === "light" || process.env.STUDYLENS_THEME === "dark" ? process.env.STUDYLENS_THEME : null;
+// Light / dark / follow the system: the renderer's prefers-color-scheme follows nativeTheme.
+function applyTheme(theme?: Settings["theme"]) {
+  nativeTheme.themeSource = forcedTheme ?? (theme === "light" || theme === "dark" ? theme : "system");
+}
 const isMac = process.platform === "darwin";
 const assetsDir = path.join(__dirname, "..", "assets");
 const userFile = (f: string) => path.join(app.getPath("userData"), f);
@@ -41,12 +51,21 @@ function saveSettings(patch: Partial<Settings>): Settings {
   return s;
 }
 
-// ---------- History: every finished or failed run ----------
-const loadHistory = (): HistoryItem[] => readJson<HistoryItem[]>(userFile("history.json"), []);
-function saveHistory(items: HistoryItem[]) { writeJson(userFile("history.json"), items.slice(0, 200)); }
-function addHistory(item: HistoryItem) {
-  saveHistory([item, ...loadHistory().filter((h) => h.id !== item.id)]);
-  win?.webContents.send("history:changed");
+// ---------- Library: projects and the notebooks made so far ----------
+const library = new Library(app.getPath("userData"), (p) => shell.trashItem(p), () => win?.webContents.send("history:changed"),
+  (from, to) => runs.relocate(from, to));
+const projectsRoot = () => loadSettings().projectsRoot || path.join(app.getPath("documents"), "StudyLens");
+// A run writing into a project: its folder must not move until the run is done.
+function guardProject(id: string | undefined) {
+  const r = runs.activeRun();
+  if (id && r?.projectId === id) throw new Error(t("lib.busy"));
+}
+const libErr = (e: unknown) => {
+  if (e instanceof LibraryError) return new Error(t(`lib.${e.code}`));
+  return e as Error;
+};
+async function lib<T>(fn: () => T | Promise<T>): Promise<T> {
+  try { return await fn(); } catch (e) { throw libErr(e); }
 }
 
 let win: BrowserWindow | null = null;
@@ -81,7 +100,13 @@ function createWindow() {
     win.on("resize", reshadow);
   }
   if (process.env.STUDYLENS_DEV) devReload(win);
-  win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: "deny" }; });
+  win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:|^mailto:/.test(url)) shell.openExternal(url); return { action: "deny" }; });
+  // A link followed inside the preview opens in the browser instead of replacing the preview.
+  win.webContents.on("will-frame-navigate", (e) => {
+    if (e.isMainFrame || e.url.startsWith("slpreview:") || e.url.startsWith("about:")) return;
+    e.preventDefault();
+    if (/^https?:|^mailto:/.test(e.url)) shell.openExternal(e.url);
+  });
   win.on("closed", () => { win = null; });
 }
 
@@ -115,7 +140,7 @@ function devReload(w: BrowserWindow) {
 async function shootStates(dir: string) {
   const w = win!;
   const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-  const js = (code: string) => w.webContents.executeJavaScript(code);
+  const js = (code: string) => w.webContents.executeJavaScript(code).catch((e) => console.log(`[shoot] ${code.slice(0, 60)} → ${e.message}`));
   const snap = async (name: string) => { await wait(450); writeFileSync(path.join(dir, name + ".png"), (await w.webContents.capturePage()).toPNG()); };
   mkdirSync(dir, { recursive: true });
   await wait(1200);
@@ -123,6 +148,14 @@ async function shootStates(dir: string) {
   const until = async (ok: (s: string) => boolean, ms = 30000) => { for (let i = 0; i < ms / 250 && !ok(await state()); i++) await wait(250); };
   await js(`window.__test.history()`);
   await snap("1-empty");
+  const pdir = path.join(dir, "projects");
+  rmSync(pdir, { recursive: true, force: true });
+  await js(`window.__test.createProject("System Design", "#5E5CE6", ${JSON.stringify(pdir)})`);
+  await js(`window.__test.createProject("Mạng máy tính", "#30D158", ${JSON.stringify(pdir)})`);
+  await wait(300);
+  await snap("1c-home");
+  await js(`window.__test.useProject("System Design"); window.__test.newPage()`);
+  await wait(400);
   await js(`window.__test.over(true)`);
   await wait(350);
   await snap("1b-dragover");
@@ -138,6 +171,10 @@ async function shootStates(dir: string) {
   await js(`window.__test.setFiles(${JSON.stringify(demoFiles.map((n) => path.join(demo, n)))}, "separate")`);
   await wait(1200);
   await snap("2c-separate");
+  await js(`document.querySelector('#o-format [data-v="wbs"]').click(); document.getElementById("o-format").scrollIntoView({ block: "center" })`);
+  await wait(400);
+  await snap("2e-wbs-needs-xlsx");
+  await js(`document.querySelector('#o-format [data-v="tap"]').click()`);
   if (process.env.STUDYLENS_FAKE_CLAUDE) {
     // A real run through main: 3 files one per notebook, the 2nd fails on purpose; pause then continue.
     const bdir = path.join(dir, "batch");
@@ -146,6 +183,7 @@ async function shootStates(dir: string) {
     for (const n of names) writeFileSync(path.join(bdir, n), Buffer.alloc(2048));
     await js(`window.__test.setFiles(${JSON.stringify(names.map((n) => path.join(bdir, n)))}, "separate")`);
     await wait(900);
+    await snap("2d-in-project");
     await js(`window.__test.process(${JSON.stringify(bdir)})`);
     await wait(1800);
     await snap("3-run-running");
@@ -160,11 +198,86 @@ async function shootStates(dir: string) {
     await js(`window.__test.newPage()`);
     await wait(500);
     await snap("6-new-after-run");
+    await js(`window.__test.home()`);
+    await wait(900);
+    await snap("6a-home");
+    await js(`window.__test.project("System Design")`);
+    await wait(900);
+    await snap("6b-project");
+    // Tags: two notebooks tagged, the project page filter, the dialog, then a #tag search in the sidebar.
+    await js(`(async () => { const h = (await window.api.listHistory()).filter((x) => x.status === "done");
+      if (h[0]) await window.api.tagNotebook(h[0].id, ["Caching", "Thi cuối kỳ", "Redis"]);
+      if (h[1]) await window.api.tagNotebook(h[1].id, ["Giới thiệu", "Thi cuối kỳ"]);
+      await window.__test.reload(); })()`);
+    await wait(700);
+    await snap("6b2-project-tags");
+    await js(`document.querySelector("#pj-tags .tag-chip:not(.all)")?.click()`);
+    await wait(500);
+    await snap("6b3-project-tag-filter");
+    await js(`document.querySelector("#nb-grid .nb-card")?.click()`);
+    await wait(700);
+    await snap("6b4-detail-tags");
+    await js(`document.querySelector("#d-tags .tag-add")?.click()`);
+    await wait(400);
+    await snap("6b5a-tags-templates");
+    await js(`{ const i = document.getElementById("tg-input"); i.value = "ca"; i.dispatchEvent(new Event("input")) }`);
+    await snap("6b5-tags-dialog");
+    await js(`window.__test.closeDialogs()`);
+    await js(`{ const q = document.getElementById("q"); q.value = "#th"; q.dispatchEvent(new Event("input")) }`);
+    await wait(400);
+    await snap("6b6-search-partial");
+    await js(`{ const q = document.getElementById("q"); q.value = "#thi cuoi"; q.dispatchEvent(new Event("input")) }`);
+    await wait(400);
+    await snap("6b7-search-tag");
+    await js(`{ const q = document.getElementById("q"); q.value = ""; q.dispatchEvent(new Event("input")); window.__test.project("System Design") }`);
+    await wait(500);
+    await js(`window.__test.menu("#nb-grid .nb-card .nb-acts .icon-btn:last-child")`);
+    await snap("6c-note-menu");
+    await js(`[...document.querySelectorAll(".menu .menu-item")].find((b) => b.textContent.includes("Mạng"))?.click()`);   // move to "Mạng máy tính"
+    await wait(900);
+    await snap("6d-moved-toast");
+    // Quick look: Space on a notebook card, then a source file tab, then close.
+    writeFileSync(path.join(bdir, names[0]), await w.webContents.printToPDF({}));   // a real PDF for the source tab
+    await js(`(() => { const c = document.querySelector("#nb-grid .nb-card"); c?.focus(); c?.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true })); })()`);
+    await wait(1500);
+    await snap("6p1-preview-notebook");
+    await js(`document.querySelectorAll("#pv-tabs .pv-tab")[1]?.click()`);
+    await wait(1200);
+    await snap("6p2-preview-source");
+    await js(`document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }))`);
+    await wait(400);
+    await snap("6p3-preview-closed");
+    await js(`window.__test.newProjectDialog()`);
+    await wait(300);
+    await js(`document.getElementById("pj-name").value = "Kafka"; document.getElementById("pj-name").dispatchEvent(new Event("input"))`);
+    await snap("6e-project-dialog");
+    await js(`window.__test.closeDialogs()`);
   }
+  await js(`window.__test.reload()`);
+  await wait(300);
   await js(`window.__test.detail()`);
   await snap("7-detail");
   await js(`window.__test.settings()`);
   await snap("8-settings");
+  if (!forcedTheme) {
+    await js(`document.getElementById("set-theme").scrollIntoView({ block: "center" })`);
+    for (const m of ["dark", "light", "system"]) {
+      await js(`document.querySelector('#set-theme [data-v="${m}"]').click()`);
+      await wait(500);
+      await snap("8t-theme-" + m);
+    }
+    await js(`window.__test.closeSettings()`);
+    await wait(300);
+    await js(`document.getElementById("hdr-theme").click()`);
+    await snap("8t-theme-menu");
+    await js(`document.querySelector(".menu .menu-item:nth-of-type(3)")?.click()`);   // Dark
+    await wait(500);
+    await snap("8t-theme-header-dark");
+    await js(`document.getElementById("hdr-theme").click()`);
+    await js(`document.querySelector(".menu .menu-item")?.click()`);   // back to System
+    await wait(300);
+    await js(`window.__test.settings()`);
+  }
   await js(`window.__test.checking()`);
   await snap("8b-checking");
   await js(`window.__test.lang("en")`);
@@ -217,11 +330,38 @@ ipcMain.handle("settings:get", () => { const s = loadSettings(); return { ...s, 
 ipcMain.handle("settings:save", (_e, patch: Partial<Settings>) => {
   const s = saveSettings(patch);
   setLang(uiLangOf(s));
+  if ("theme" in patch) applyTheme(s.theme);
   return { ...s, uiLang: uiLangOf(s) };
 });
-ipcMain.handle("history:list", () => loadHistory().map((h) => ({ ...h, exists: h.output ? existsSync(h.output) : false })));
-ipcMain.handle("history:remove", (_e, id: string) => { saveHistory(loadHistory().filter((h) => h.id !== id)); });
-ipcMain.handle("path:open", (_e, p: string) => shell.openPath(p));
+ipcMain.handle("history:list", () => library.history());
+ipcMain.handle("history:remove", (_e, id: string) => library.removeHistory(id));
+ipcMain.handle("projects:list", () => library.projects());
+ipcMain.handle("projects:root", () => projectsRoot());
+ipcMain.handle("projects:create", (_e, o: { name: string; color: string; parent?: string }) => lib(() => library.createProject({ ...o, parent: o.parent || projectsRoot() })));
+ipcMain.handle("projects:update", (_e, id: string, patch: { name?: string; color?: string }) => lib(() => {
+  if (patch.name) guardProject(id);
+  return library.updateProject(id, patch);
+}));
+ipcMain.handle("projects:remove", (_e, id: string, trash: boolean) => lib(() => {
+  guardProject(id);
+  return library.removeProject(id, trash);
+}));
+ipcMain.handle("notebook:rename", (_e, id: string, title: string) => lib(() => library.renameNotebook(id, title)));
+ipcMain.handle("notebook:move", (_e, id: string, projectId: string | null) => lib(() => library.moveNotebook(id, projectId)));
+ipcMain.handle("notebook:tags", (_e, id: string, tags: string[]) => lib(() => library.tagNotebook(id, tags)));
+ipcMain.handle("notebook:delete", (_e, id: string, trash: boolean) => lib(() => library.deleteNotebook(id, trash)));
+// Preview: only what the library knows — a notebook's folder (or its file) and the notebooks' source files.
+function previewable(p: string): boolean {
+  const want = path.resolve(p);
+  const ci = process.platform !== "linux";
+  const same = (a: string, b: string) => (ci ? a.toLowerCase() === b.toLowerCase() : a === b);
+  const inside = (f: string, dir: string) => (ci ? f.toLowerCase() : f).startsWith((ci ? dir.toLowerCase() : dir) + path.sep);
+  return library.history().some((h) =>
+    (h.output && (inOwnFolder(h.output) ? inside(want, path.dirname(h.output)) : same(want, h.output))) || h.files.some((f) => same(want, f)));
+}
+const previewUrl = (p: string) => "slpreview://f" + pathToFileURL(p).pathname;
+ipcMain.handle("path:preview", (_e, p: string) => (!existsSync(p) ? "missing" : previewable(p) ? previewUrl(p) : "denied"));
+ipcMain.handle("path:open", async (_e, p: string) => (existsSync(p) ? shell.openPath(p) : "missing"));
 ipcMain.handle("path:reveal", (_e, p: string) => shell.showItemInFolder(p));
 
 // ---------- Runs ----------
@@ -236,9 +376,12 @@ const runs = new RunManager({
   publish: (run: Run) => win?.webContents.send("run:update", run),
   removed: (id: string) => win?.webContents.send("run:update", { id, removed: true }),
   tick: (tk) => win?.webContents.send("run:tick", tk),
+  // Notebooks of a project go into its folder (also when the project was renamed while the run was paused).
+  draw: renderMermaid,
+  outputDir: (run) => (run.projectId && library.project(run.projectId)?.dir) || run.options.outputDir,
   notebookDone(run, it) {
-    addHistory({
-      id: `${run.id}-${it.id}`, runId: run.id, status: "done", title: it.outputTitle || it.title,
+    library.addHistory({
+      id: `${run.id}-${it.id}`, runId: run.id, projectId: run.projectId, status: "done", title: it.outputTitle || it.title,
       startedAt: new Date(it.startedAt ?? run.createdAt).toISOString(), seconds: Math.round(it.elapsedMs / 1000),
       files: it.files, options: { files: it.files, title: it.title, ...run.options }, workDir: it.workDir ?? "",
       output: it.output, slides: it.slides, articles: it.articles, costUsd: it.costUsd,
@@ -246,10 +389,17 @@ const runs = new RunManager({
   },
 });
 
+// Runs made before notebooks could move (rename / into a project) may still point to the old place.
+runs.repairOutputs((run, it) => library.history().find((h) => h.id === `${run.id}-${it.id}`)?.output);
+
 ipcMain.handle("run:start", async (_e, req: RunRequest) => {
   if (runs.isBusy()) throw new Error(t("job.busy"));
   const missing = req.files.filter((f) => !existsSync(f));
   if (missing.length) throw new Error(t("job.missing", { files: missing.join(", ") }));
+  if (req.format === "wbs") {
+    const x = (f: string) => /\.xlsx$/i.test(f);
+    if (req.mode === "separate" ? !req.files.every(x) : !req.files.some(x)) throw new Error(t("job.wbsXlsx"));
+  }
   return runs.create(req).id;
 });
 ipcMain.handle("run:list", () => runs.list());
@@ -271,7 +421,15 @@ ipcMain.handle("app:restart", () => {
 });
 
 app.whenReady().then(() => {
+  protocol.handle("slpreview", (req) => {
+    const file = decodeURIComponent(new URL(req.url).pathname);
+    const p = process.platform === "win32" ? file.replace(/^\//, "") : file;
+    if (!existsSync(p) || !previewable(p)) return new Response("Not found", { status: 404 });
+    return net.fetch(pathToFileURL(p).toString());
+  });
   setLang(uiLangOf(loadSettings()));
+  applyTheme(loadSettings().theme);
+  nativeTheme.on("updated", () => { if (!isMac) win?.setBackgroundColor(nativeTheme.shouldUseDarkColors ? "#1E1E1E" : "#F2F2F4"); });
   // Test: STUDYLENS_UPDATE_TEST=1 on an older build → check, install without relaunching, quit.
   if (process.env.STUDYLENS_UPDATE_TEST) {
     checkForUpdate().then(async (info) => {
