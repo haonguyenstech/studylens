@@ -1,4 +1,4 @@
-// Shared types for main, preload and renderer.
+// The shapes the app (src-tauri) and the window (src/renderer/bridge.js → window.api) exchange.
 
 export interface JobOptions {
   files: string[];
@@ -173,5 +173,8 @@ export interface Api {
   /** An in-app preview URL for a notebook or a source file, or "missing" / "denied". */
   previewPath(p: string): Promise<string>;
   revealPath(p: string): Promise<void>;
-  pathForFile(f: File): string;
+  /** Windows: the paths of files dropped on the page (WebView2 hands them to the app); "" when unknown. */
+  pathsForFiles(files: File[]): Promise<string[]>;
+  /** macOS: files dragged in from Finder, reported by the app with their paths (null elsewhere). */
+  onFileDrag: ((cb: (e: { type: "enter" | "leave" | "drop"; paths: string[]; x?: number; y?: number }) => void) => void) | null;
 }

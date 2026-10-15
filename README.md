@@ -12,7 +12,8 @@ Every line explained, every spec analysed, every WBS mapped — and every number
 <p>
   <img alt="macOS 11+" src="https://img.shields.io/badge/macOS-11%2B-000000?logo=apple&logoColor=white" />
   <img alt="Windows 10+" src="https://img.shields.io/badge/Windows-10%2B-0078D4?logo=windows&logoColor=white" />
-  <img alt="Electron 33" src="https://img.shields.io/badge/Electron-33-47848F?logo=electron&logoColor=white" />
+  <img alt="Tauri 2" src="https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white" />
+  <img alt="Rust" src="https://img.shields.io/badge/Rust-stable-000000?logo=rust&logoColor=white" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white" />
   <img alt="Agent" src="https://img.shields.io/badge/agent-Claude%20Code-D97757" />
 </p>
@@ -107,26 +108,28 @@ The app is not code-signed. On macOS, the first time: right-click the app → **
 
 ### Build & run
 
+Needs Node 20+ and Rust (`rustup`), plus on macOS the Xcode command-line tools.
+
 ```bash
 npm install
-npm run dev          # hot reload: CSS swaps in place, renderer reloads, main/preload restart. F12 = DevTools
-npm run app          # build + pack this Mac's .app + install to /Applications (~5 s)
-npm test             # library, Deep Brief, WBS, run engine (fake Claude) and diagram tests
+npm run dev          # the app with live reload (src/renderer, src/engine); Rust changes rebuild and restart it
+npm run app          # build this Mac's .app and install it to /Applications
+npm test             # engine tests (Deep Brief, WBS) + Rust tests (library, run engine end to end with a fake Claude)
+npm run pack:mac     # release/: dmg + zip, Apple silicon and Intel
+npm run pack:win     # release/: StudyLens-Setup-<v>.exe, cross-built on macOS (see below)
 npm run release      # every installer, uploaded to this repo's GitHub Releases (see below)
 ```
 
-The Guide's screenshots come from the app itself, with demo data and a fake Claude:
+The Windows installer is cross-built on a Mac: `rustup target add x86_64-pc-windows-msvc x86_64-apple-darwin`, `cargo install cargo-xwin`, `brew install nsis llvm`. On Windows itself `npm run pack:win` works with the Visual Studio C++ build tools.
+
+Screenshots come from the app itself, with demo data in their own folder and a fake Claude (`npx tauri build --debug --bundles app` first):
 
 ```bash
-STUDYLENS_GUIDE=1 STUDYLENS_THEME=dark STUDYLENS_FAKE_CLAUDE=$PWD/scripts/fake-claude.mjs STUDYLENS_SHOOT=/tmp/StudyLens npx electron .
-```
-
-Without the UI:
-
-```bash
-node scripts/run-cli.mjs file.pdf --model sonnet --fast --out /tmp/out           # Tap to Explain
-npx electron scripts/run-cli-electron.cjs spec.pdf --brief --out /tmp/out         # Deep Brief (draws diagrams)
-npx electron scripts/run-cli-electron.cjs wbs.xlsx --wbs --out /tmp/out           # WBS Map
+APP=src-tauri/target/debug/bundle/macos/StudyLens.app/Contents/MacOS/studylens
+# the Guide's numbered screenshots
+STUDYLENS_THEME=dark STUDYLENS_SHOOT=/tmp/StudyLens STUDYLENS_SCRIPT=scripts/guide-shots.js STUDYLENS_FAKE_CLAUDE=$PWD/scripts/fake-claude.mjs $APP
+# a walk through every state (runs, Deep Brief diagrams, quick look, themes, English)
+STUDYLENS_SHOOT=/tmp/shots STUDYLENS_SCRIPT=scripts/shoot.js STUDYLENS_FAKE_CLAUDE=$PWD/scripts/fake-claude.mjs $APP
 ```
 
 ## Guide
@@ -310,44 +313,50 @@ The AI works on your files unattended, so the limits are set in code:
 ## Releases and self-update
 
 - Installers and the update feed are this repo's **[GitHub Releases](https://github.com/haonguyenstech/studylens/releases)**. Each release also carries fixed-name copies (`StudyLens-mac-arm64.dmg`, `StudyLens-mac-x64.dmg`, `StudyLens-Setup-win-x64.exe`) so the download buttons always point at the newest build.
-- To publish: bump `version` in `package.json`, add a `## X.Y.Z` section to `CHANGELOG.md`, run `npm run release` (macOS dmg/zip arm64 + x64, Windows nsis/zip x64; token from `gh auth token`).
-- The app checks for updates 4 s after launch and every 6 h (or **Settings → Updates**). macOS: downloads the zip for this chip, verifies its sha256, swaps the `.app` after quitting (rolls back on failure). Windows: silent NSIS install. A running notebook is stopped with its session kept, ready to continue.
+- To publish: bump `version` in `package.json` and `src-tauri/Cargo.toml`, add a `## X.Y.Z` section to `CHANGELOG.md`, run `npm run release` (macOS dmg + zip for arm64 and x64, Windows setup exe; uses `gh`).
+- The app checks for updates 4 s after launch and every 6 h (or **Settings → Updates**). macOS: downloads the zip for this chip, verifies its sha256, swaps the `.app` after quitting (rolls back on failure). Windows: silent install (`/S /R`), the app reopens. The asset names are the ones 0.2 looks for, so the Electron versions update straight into this one; on Windows the installer first removes the old Electron copy. A running notebook is stopped with its session kept, ready to continue.
 
 ---
 
 ## Project layout
 
 ```
-src/main/
-├── index.ts          window, IPC, settings, library wiring, quick-look protocol (slpreview://)
-├── pipeline.ts       one notebook: prepare → claude -p → check / fix rounds → assemble
-├── runs.ts           runs: queue, pause / stop / continue, retry, history
-├── library.ts        projects and notebooks on disk (rename, move, tags, delete)
-├── convert.ts        PDF/images copied; DOCX/PPTX text + media
-├── xlsx.ts           Excel reader (sheets, columns, formulas, merges)
+src-tauri/src/        the app (Rust)
+├── lib.rs            window, commands for window.api, settings, quick-look protocol (slpreview), updates
+├── runs.rs           runs: queue, pause / stop / continue, retry, history
+├── job.rs            one notebook: prepare → claude -p (stream-json) → check / fix rounds → write
+├── library.rs        projects and notebooks on disk (rename, move, tags, delete)
+├── convert.rs        input files: copies, Office images; the text comes from the engine
+├── engine.rs         calls into the engine running in the window
+├── claude.rs         find and launch the CLI (stdin prompt, Windows .cmd, process tree stop)
+├── preview.rs        which files quick look may show, and how they are served
+├── updater.rs        GitHub Releases self-update
+├── drop_paths.rs     Windows: paths of files dropped on the window (WebView2)
+└── runs_e2e.rs       end-to-end test of the run engine (fake Claude, engine under Node)
+src-tauri/windows/    installer hooks (remove the 0.2 Electron copy)
+src/engine/           checks and page assembly, in TypeScript, run inside the window (and under Node in tests)
 ├── notebook.ts       Tap to Explain: check + assemble
 ├── brief.ts          Deep Brief: check + navigation + assemble
-├── diagrams.ts       Mermaid → SVG in a hidden window
 ├── wbs.ts            WBS Map: read the sheet, check the spec, render
-├── claude.ts         find and launch the CLI (stdin prompt, Windows .cmd)
-├── guide-shots.ts    renders the Guide's numbered screenshots (dev only)
-└── updater.ts        GitHub Releases self-update
-src/renderer/         the UI (plain JS + CSS), i18n, fonts
+├── xlsx.ts, office.ts  Excel reader; DOCX/PPTX/XLSX text
+└── diagrams.ts       Mermaid → SVG in an off-screen frame
+src/renderer/         the UI (plain JS + CSS), bridge.js (window.api), i18n, fonts
+src/shared/           strings.json (UI texts, read by both sides), types
 assets/               per notebook type: GUIDE.md (instructions for Claude), template.html, example
   ├── brief/          Deep Brief
   └── wbs/            WBS Map
-scripts/              dev, release, tests, fake Claude, CLI runners, WBS test workbook
+scripts/              build, pack, release, tests, fake Claude, screenshot scripts, WBS test workbook
 design/               logo source (logo.svg, render-logo.cjs)
 ```
 
-App data lives in the Electron user-data folder: `projects.json`, `history.json`, `runs.json`, `settings.json` and the last working folders under `jobs/`.
+App data lives in `~/Library/Application Support/StudyLens` (macOS) or `%APPDATA%\StudyLens` (Windows), the same folder as before: `projects.json`, `history.json`, `runs.json`, `settings.json` and the last working folders under `jobs/`.
 
 ---
 
 ## Credits
 
 - [Claude Code](https://claude.com/claude-code) — writes the notebooks
-- [Electron](https://www.electronjs.org/) (MIT) · [JSZip](https://stuk.github.io/jszip/) (MIT/GPLv3) · [Mermaid](https://mermaid.js.org/) (MIT)
+- [Tauri](https://tauri.app/) (MIT/Apache-2.0) · [JSZip](https://stuk.github.io/jszip/) (MIT/GPLv3) · [Mermaid](https://mermaid.js.org/) (MIT)
 - [Google Sans Flex](https://fonts.google.com/) — SIL Open Font License
 
 <div align="center"><sub>© Hao Nguyen · All rights reserved.</sub></div>

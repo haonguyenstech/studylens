@@ -1,4 +1,4 @@
-// WBS Map: the workbook reader, the checks on out/wbs.json, and the page (no Electron): node scripts/test-wbs.mjs
+// WBS Map: the workbook reader, the checks on out/wbs.json, and the page (no app window): node scripts/test-wbs.mjs
 import { createRequire } from "node:module";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
@@ -6,8 +6,8 @@ import os from "node:os";
 import { makeWbsXlsx } from "./wbs-fixture.mjs";
 
 const require = createRequire(import.meta.url);
-const { readWorkbook, workbookText, showNum } = require("../dist/main/xlsx.js");
-const { checkWbs, renderWbs } = require("../dist/main/wbs.js");
+const { readWorkbook, workbookText, showNum, checkWbs: checkWith, renderWbs, nodeHost, sha1Hex, listDir } = require("../dist/engine.cjs");
+const checkWbs = (spec, f) => checkWith(spec, f, nodeHost.readBytes);
 const base = path.join(os.tmpdir(), "studylens-test-wbs");
 rmSync(base, { recursive: true, force: true });
 mkdirSync(base, { recursive: true });
@@ -59,6 +59,10 @@ check(html.includes('id="f-f1"') && html.includes("<b>2.2</b>"), "page: findings
 check(html.includes("Tổng con bằng tổng cha") && html.includes("khớp dòng tổng"), "page: computed checks added");
 const en = renderWbs(readFileSync(new URL("../assets/wbs/template.html", import.meta.url), "utf8"), mdl, "en", "F");
 check(en.includes("Estimate confidence") && en.includes('lang="en"'), "page: English labels");
+
+// engine helpers that replaced Node APIs
+check(sha1Hex("Sổ tay" + 1234) === require("node:crypto").createHash("sha1").update("Sổ tay" + 1234).digest("hex"), "sha1Hex matches Node's sha1 (notebook doc id)");
+check(listDir({ "a/2.html": "", "a/10.html": "", "a/b/c.html": "", "x.html": "" }, "a").join() === "10.html,2.html", "listDir: direct children, sorted like readdirSync().sort()");
 
 console.log(failures ? `\n${failures} check(s) failed` : "\nall checks passed");
 process.exit(failures ? 1 : 0);

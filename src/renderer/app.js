@@ -1554,18 +1554,10 @@
   const pick = async () => { if (!running) addPaths(await api.pickFiles()); };
   drop.addEventListener("click", pick);
   drop.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+  // Files from the system. Windows: the page's own drag events; the paths come from the app
+  // (api.pathsForFiles). macOS: the app reports the drag itself, with the paths (api.onFileDrag).
   let dragDepth = 0;
   const hasFiles = (e) => e.dataTransfer && [...e.dataTransfer.types].includes("Files");
-  document.addEventListener("dragenter", (e) => {
-    if (!hasFiles(e) || running) return;
-    const ctx = dropProject();
-    if (!ctx) return;              // home / runs: no project to put the files in
-    e.preventDefault();
-    dragDepth++;
-    if (page !== "new") newNotebookIn(ctx);
-    drop.classList.add("over");
-    setDropTitle();
-  });
   // Files dropped on a project (its page, one of its notebooks, or the new page) start a notebook in it.
   function dropProject() {
     if (page === "new") return newProject;
@@ -1573,20 +1565,55 @@
     if (page === "detail") return projOf(history.find((h) => h.id === selected)?.projectId)?.id || null;
     return null;
   }
-  document.addEventListener("dragover", (e) => { if (hasFiles(e) && dropProject()) e.preventDefault(); });
-  document.addEventListener("dragleave", (e) => {
-    if (!hasFiles(e)) return;
-    if (--dragDepth <= 0) { dragDepth = 0; drop.classList.remove("over"); setDropTitle(); }
-  });
-  document.addEventListener("drop", (e) => {
+  function filesEnter() {
+    if (running) return false;
+    const ctx = dropProject();
+    if (!ctx) return false;              // home / runs: no project to put the files in
+    if (page !== "new") newNotebookIn(ctx);
+    drop.classList.add("over");
+    setDropTitle();
+    return true;
+  }
+  function filesLeave() {
     dragDepth = 0;
     drop.classList.remove("over");
     setDropTitle();
-    if (!e.dataTransfer.files.length || page !== "new") return;
-    e.preventDefault();
-    if (running) return;
-    addPaths([...e.dataTransfer.files].map((f) => ({ path: api.pathForFile(f), size: f.size })), { x: e.clientX, y: e.clientY });
-  });
+  }
+  if (api.onFileDrag) {
+    let inside = false;
+    api.onFileDrag((e) => {
+      if (e.type === "enter") inside = filesEnter();
+      else if (e.type === "leave") { inside = false; filesLeave(); }
+      else if (e.type === "drop") {
+        const was = inside;
+        inside = false;
+        filesLeave();
+        if (!was || page !== "new" || running || !e.paths.length) return;
+        addPaths(e.paths, { x: e.x, y: e.y });
+      }
+    });
+  } else {
+    document.addEventListener("dragenter", (e) => {
+      if (!hasFiles(e) || !filesEnter()) return;
+      e.preventDefault();
+      dragDepth++;
+    });
+    document.addEventListener("dragover", (e) => { if (hasFiles(e) && dropProject()) e.preventDefault(); });
+    document.addEventListener("dragleave", (e) => {
+      if (!hasFiles(e)) return;
+      if (--dragDepth <= 0) filesLeave();
+    });
+    document.addEventListener("drop", async (e) => {
+      filesLeave();
+      if (!e.dataTransfer.files.length || page !== "new") return;
+      e.preventDefault();
+      if (running) return;
+      const list = [...e.dataTransfer.files];
+      const at = { x: e.clientX, y: e.clientY };
+      const paths = await api.pathsForFiles(list);
+      addPaths(list.map((f, i) => ({ path: paths[i], size: f.size })), at);
+    });
+  }
 
   // ---------- Options ----------
   function setSeg(id, v) {
@@ -2074,7 +2101,7 @@
     $("ud-phase").textContent = p.phase === "download" ? t("up.download", { pct }) : t(p.phase === "verify" ? "up.verify" : "up.installing");
   });
 
-  // ---------- Dev hooks for the offscreen screenshot mode (STUDYLENS_SHOOT) ----------
+  // ---------- Dev hooks for the screenshot mode (STUDYLENS_SHOOT, driven by scripts/shoot.js) ----------
   window.__test = {
     history: () => {
       const now = Date.now(), iso = (m) => new Date(now - m * 60000).toISOString();
@@ -2120,6 +2147,7 @@
     closeDialogs: () => document.querySelectorAll("dialog[open]").forEach((d) => d.close()),
     menu: (sel) => document.querySelector(sel)?.click(),
     reload: () => loadHistory(),
+    ready: () => booted,
     fakeUpdate: () => { update = { current: "0.1.0", latest: "0.1.1", available: true, publishedAt: new Date().toISOString(), notes: "• Pause and continue runs, even after a restart\n• Each notebook can have its own name\n• Faster startup" }; paintUpdate(); openUpdate(); },
   };
 

@@ -1,0 +1,54 @@
+[package]
+name = "studylens"
+version = "0.3.1"
+description = "StudyLens: study material in, an interactive notebook out (Claude Code does the writing)"
+authors = ["Hao Nguyen <hao.nguyen@saigontechnology.com>"]
+edition = "2021"
+rust-version = "1.80"
+
+[lib]
+name = "studylens_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["macos-private-api"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+tokio = { version = "1", features = ["process", "io-util", "time", "sync", "macros", "rt-multi-thread", "fs"] }
+regex = "1"
+fancy-regex = "0.14"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+sha2 = "0.10"
+ureq = { version = "2", features = ["json"] }
+trash = "5"
+getrandom = "0.2"
+dirs = "5"
+percent-encoding = "2"
+sys-locale = "0.3"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+# Hands drags that start inside the page back to WebKit (mac_drag); same version as wry's.
+objc2 = "0.6"
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+
+[target.'cfg(windows)'.dependencies]
+# Paths of files dropped on the window (WebView2 hands them over with the message); same versions as wry's.
+webview2-com = "0.39"
+windows = { version = "0.62", features = ["Win32_Foundation"] }
+windows-core = "0.62"

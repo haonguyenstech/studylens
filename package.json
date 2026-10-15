@@ -1,97 +1,29 @@
 {
   "name": "studylens",
   "productName": "StudyLens",
-  "version": "0.2.0",
+  "version": "0.3.1",
   "description": "Pick study material (PDF, PPTX, DOCX, images…) → Claude Code builds an interactive HTML notebook with plain-language explanations and everyday examples",
   "author": "Hao Nguyen <hao.nguyen@saigontechnology.com>",
   "license": "UNLICENSED",
-  "main": "dist/main/index.js",
   "scripts": {
-    "clean": "rm -rf dist release",
-    "build": "tsc -p tsconfig.json && node scripts/copy-assets.mjs",
-    "dev": "node scripts/dev.mjs",
-    "start": "npm run build && electron .",
-    "app": "npm run build && electron-builder --mac --dir --publish never && node scripts/install-mac.mjs",
-    "pack:mac": "npm run build && electron-builder --mac --publish never",
-    "pack:win": "npm run build && electron-builder --win --x64 --publish never",
+    "clean": "rm -rf dist release src-tauri/target",
+    "build": "node scripts/build.mjs",
+    "dev": "tauri dev",
+    "app": "tauri build --bundles app && node scripts/install-mac.mjs",
+    "pack:mac": "node scripts/pack.mjs mac",
+    "pack:win": "node scripts/pack.mjs win",
     "release": "node scripts/release.mjs",
-    "test": "npm run build && node scripts/test-library.mjs && node scripts/test-brief.mjs && node scripts/test-wbs.mjs && node scripts/test-runs.mjs && electron scripts/test-diagrams.cjs"
+    "test": "npm run build && node scripts/test-brief.mjs && node scripts/test-wbs.mjs && cargo test --manifest-path src-tauri/Cargo.toml"
   },
   "dependencies": {
     "jszip": "^3.10.1"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "2.12.2",
     "@types/node": "^22.10.2",
-    "electron": "^33.4.11",
-    "electron-builder": "^25.1.8",
+    "esbuild": "0.28.2",
     "mermaid": "11.17.2",
     "typescript": "^5.7.2"
-  },
-  "build": {
-    "appId": "vn.haonguyen.studylens",
-    "productName": "StudyLens",
-    "directories": {
-      "output": "release",
-      "buildResources": "build"
-    },
-    "files": [
-      "dist/**/*",
-      "!**/*.map"
-    ],
-    "mac": {
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "arm64",
-            "x64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "arm64",
-            "x64"
-          ]
-        }
-      ],
-      "category": "public.app-category.education",
-      "icon": "build/icon.png"
-    },
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "build/icon.png"
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "shortcutName": "StudyLens",
-      "artifactName": "StudyLens-Setup-${version}.${ext}"
-    },
-    "artifactName": "StudyLens-${version}-${os}-${arch}.${ext}",
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "haonguyenstech",
-        "repo": "studylens",
-        "releaseType": "release"
-      }
-    ]
   },
   "repository": {
     "type": "git",

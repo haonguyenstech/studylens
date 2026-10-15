@@ -1,6 +1,7 @@
 // Render design/logo.svg to PNGs: npx electron design/render-logo.cjs
 //   build/icon.png        1024, the mark with a margin so it sits like other Dock icons (the mark has no tile)
 //   src/renderer/icon.png  256, edge to edge, for the app's own screens
+// Then refresh the app icons: npx tauri icon build/icon.png -o src-tauri/icons (and drop the mobile ones)
 const { app, BrowserWindow } = require("electron");
 const fs = require("node:fs"), path = require("node:path");
 app.on("window-all-closed", () => {});

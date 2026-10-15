@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "StudyLens",
+  "version": "../package.json",
+  "identifier": "vn.haonguyen.studylens",
+  "build": {
+    "frontendDist": "../dist/renderer",
+    "beforeDevCommand": "node scripts/build.mjs --watch",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "macOSPrivateApi": true,
+    "windows": [],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg", "nsis"],
+    "category": "Education",
+    "copyright": "© Hao Nguyen",
+    "shortDescription": "Study material in, an interactive notebook out",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "resources": { "../assets/": "assets/" },
+    "macOS": { "minimumSystemVersion": "10.15" },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["English", "Vietnamese"],
+        "displayLanguageSelector": false,
+        "installerHooks": "windows/hooks.nsh"
+      }
+    }
+  }
+}

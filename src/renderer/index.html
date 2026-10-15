@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src slpreview:">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'; connect-src 'self' ipc: http://ipc.localhost; frame-src 'self' slpreview: http://slpreview.localhost">
 <title>StudyLens</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -388,6 +388,8 @@
   </form>
 </dialog>
 
+<script src="bridge.js"></script>
+<script src="engine.js"></script>
 <script src="i18n.js"></script>
 <script src="app.js"></script>
 </body>

@@ -1,7 +1,7 @@
-// Deep Brief checks (no Electron): node scripts/test-brief.mjs
+// Deep Brief checks (no app window): node scripts/test-brief.mjs
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { checkBrief, briefNav, assembleBrief } = require("../dist/main/brief.js");
+const { checkBrief, briefNav, assembleBrief } = require("../dist/engine.cjs");
 
 let failures = 0;
 const check = (ok, msg) => { console.log(`${ok ? "✓" : "✗"} ${msg}`); if (!ok) failures++; };
