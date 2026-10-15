@@ -20,6 +20,9 @@ const methods: Record<string, (args: any) => Promise<unknown>> = {
   officeText: (req) => officeText(req, host),
 };
 
+// Ask AI draws the ```mermaid blocks of an answer with the same renderer.
+(window as unknown as { studylensDraw: typeof renderMermaid }).studylensDraw = renderMermaid;
+
 interface Call { id: number; method: string; args: unknown }
 
 tauri.event.listen<Call>("engine:call", async ({ payload: { id, method, args } }) => {

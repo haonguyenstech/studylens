@@ -1,6 +1,6 @@
 [package]
 name = "studylens"
-version = "0.3.1"
+version = "0.3.2"
 description = "StudyLens: study material in, an interactive notebook out (Claude Code does the writing)"
 authors = ["Hao Nguyen <hao.nguyen@saigontechnology.com>"]
 edition = "2021"
@@ -50,5 +50,5 @@ strip = true
 [target.'cfg(windows)'.dependencies]
 # Paths of files dropped on the window (WebView2 hands them over with the message); same versions as wry's.
 webview2-com = "0.39"
-windows = { version = "0.62", features = ["Win32_Foundation"] }
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse"] }
 windows-core = "0.62"

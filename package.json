@@ -1,7 +1,7 @@
 {
   "name": "studylens",
   "productName": "StudyLens",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Pick study material (PDF, PPTX, DOCX, images…) → Claude Code builds an interactive HTML notebook with plain-language explanations and everyday examples",
   "author": "Hao Nguyen <hao.nguyen@saigontechnology.com>",
   "license": "UNLICENSED",

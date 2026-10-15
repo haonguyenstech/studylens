@@ -73,6 +73,14 @@ Every line explained, every spec analysed, every WBS mapped — and every number
 - **Pause, stop, continue** — even after quitting the app: the same Claude session resumes in the same folder.
 - Retry a file, skip it, retry the failed ones, start over; a live log per file.
 
+### 💬 Ask AI
+A chat about your notebooks, in its own sidebar tab.
+- Type **`@`** to bring in a notebook or a whole project; the AI reads them (read-only) and answers in Markdown, with **source chips** that open quick look at the cited section or PDF page.
+- **Attach** files or images (📎, drag and drop, or paste a screenshot); Word, PowerPoint and Excel are turned into text first.
+- **Speak** your question (🎤 or <kbd>⌥Space</kbd>), then press Enter.
+- Answers stream in, with Mermaid diagrams, highlighted code, three **"Ask next"** suggestions, and time · cost · model under each one. Pick the model per chat (Haiku, Sonnet, Opus).
+- Chats are kept, follow-ups keep the context (even after a restart), and you can pin, rename or delete them.
+
 ### 👀 Quick look
 Preview a notebook — or its source PDFs and images — inside the app (<kbd>Space</kbd> on a card). Notebooks run sandboxed on their own origin; links open in your browser.
 

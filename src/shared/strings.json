@@ -95,7 +95,22 @@
     "chk.script": "Không được dùng <script> trong slides/articles; đưa JS vào out/charts.js",
     "chk.chartsSyntax": "charts.js lỗi cú pháp: {msg}",
     "chk.chartsIds": "charts.js bám vào id không có trong trang: {ids}",
-    "chk.zeroSlides": "slides.html: không có slide nào (div.slide)"
+    "chk.zeroSlides": "slides.html: không có slide nào (div.slide)",
+    "chat.empty": "Hãy nhập câu hỏi.",
+    "chat.busy": "AI vẫn đang trả lời trong cuộc trò chuyện này. Chờ xong hoặc dừng lại trước.",
+    "chat.notFound": "Không tìm thấy cuộc trò chuyện.",
+    "chat.noTitle": "Tên không được để trống.",
+    "chat.read": "Đang đọc {file}…",
+    "chat.grep": "Đang tìm “{q}” trong tài liệu…",
+    "chat.glob": "Đang xem danh sách file…",
+    "chat.web": "Đang tìm trên web: {q}…",
+    "chat.fetch": "Đang đọc một trang web…",
+    "chat.tool": "Đang dùng {tool}…",
+    "chat.notFile": "{name}: không phải file.",
+    "chat.tooBig": "{name} lớn hơn {mb} MB.",
+    "chat.attachGone": "Không còn file đính kèm “{name}”. Hãy đính kèm lại.",
+    "chat.lookAt": "Xem giúp mình các file đính kèm.",
+    "chat.extracting": "Đang trích chữ từ {name}…"
   },
   "en": {
     "dlg.pick": "Choose documents",
@@ -193,6 +208,21 @@
     "chk.script": "<script> is not allowed in slides/articles; put JS in out/charts.js",
     "chk.chartsSyntax": "charts.js syntax error: {msg}",
     "chk.chartsIds": "charts.js refers to ids that aren't on the page: {ids}",
-    "chk.zeroSlides": "slides.html: no slides (div.slide)"
+    "chk.zeroSlides": "slides.html: no slides (div.slide)",
+    "chat.empty": "Type a question first.",
+    "chat.busy": "The AI is still answering in this chat. Wait for it or stop it first.",
+    "chat.notFound": "Chat not found.",
+    "chat.noTitle": "The name can't be empty.",
+    "chat.read": "Reading {file}…",
+    "chat.grep": "Searching the documents for “{q}”…",
+    "chat.glob": "Listing files…",
+    "chat.web": "Searching the web: {q}…",
+    "chat.fetch": "Reading a web page…",
+    "chat.tool": "Using {tool}…",
+    "chat.notFile": "{name}: not a file.",
+    "chat.tooBig": "{name} is larger than {mb} MB.",
+    "chat.attachGone": "The attachment “{name}” is gone. Attach it again.",
+    "chat.lookAt": "Please look at the attached files.",
+    "chat.extracting": "Extracting the text of {name}…"
   }
 }

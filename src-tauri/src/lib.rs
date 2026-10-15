@@ -1,6 +1,7 @@
 // StudyLens: the app process. Owns the window, the files (settings, library, runs) and the Claude
 // processes; the window (src/renderer) is the UI, and the engine inside it (src/engine) checks and
 // assembles the notebooks. Commands below are what window.api calls (src/renderer/bridge.js).
+mod chat;
 mod claude;
 mod convert;
 #[cfg(windows)]
@@ -36,6 +37,7 @@ struct App {
     library: Arc<Library>,
     runs: Arc<RunManager>,
     engine: Arc<Engine>,
+    chats: Arc<chat::Chats>,
     last_update: Mutex<Option<updater::UpdateInfo>>,
 }
 
@@ -74,6 +76,49 @@ fn paint_background(win: &WebviewWindow) {
     let dark = win.theme().map(|t| t == Theme::Dark).unwrap_or(false);
     let c = if dark { tauri::window::Color(0x1E, 0x1E, 0x1E, 255) } else { tauri::window::Color(0xF2, 0xF2, 0xF4, 255) };
     let _ = win.set_background_color(Some(c));
+}
+
+// ---------- the chats' view of the app ----------
+struct ChatHost {
+    app: AppHandle,
+    data_dir: PathBuf,
+    library: Arc<Library>,
+    engine: Arc<Engine>,
+}
+
+impl chat::ChatHost for ChatHost {
+    fn library(&self) -> Arc<Library> {
+        self.library.clone()
+    }
+    fn claude(&self) -> BoxFut<'_, Result<String, String>> {
+        Box::pin(async {
+            let info = claude::find_claude("").await;
+            match (info.found, info.path) {
+                (true, Some(p)) => Ok(p),
+                _ => Err(info.error.unwrap_or_else(|| t("job.noClaude", &[]))),
+            }
+        })
+    }
+    fn model(&self) -> String {
+        settings::get(&settings::load(&self.data_dir), "model").to_string()
+    }
+    fn research(&self) -> bool {
+        settings::load(&self.data_dir).get("research").and_then(Value::as_bool).unwrap_or(true)
+    }
+    fn office_text(&self, path: PathBuf, ext: String) -> BoxFut<'_, Result<String, String>> {
+        Box::pin(async move {
+            #[derive(serde::Deserialize)]
+            struct OfficeText {
+                md: String,
+            }
+            self.engine.allow_read([path.clone()]);
+            let r: OfficeText = self.engine.call("officeText", json!({ "path": path.to_string_lossy(), "ext": ext, "uiLang": i18n::lang() })).await?;
+            Ok(r.md)
+        })
+    }
+    fn emit(&self, event: &str, payload: Value) {
+        let _ = self.app.emit(event, payload);
+    }
 }
 
 // ---------- the run manager's view of the app ----------
@@ -269,7 +314,7 @@ fn path_preview(app: tauri::State<'_, App>, path: String) -> String {
     let p = Path::new(&path);
     if !p.exists() {
         "missing".into()
-    } else if preview::previewable(p, &app.library.history()) {
+    } else if preview::previewable(p, &app.library.history()) || app.chats.serves(p) {
         preview::url(p)
     } else {
         "denied".into()
@@ -339,6 +384,92 @@ async fn run_item(app: tauri::State<'_, App>, run_id: String, item_id: String, a
 }
 
 /// Relaunch the app; a running job (and its claude process tree) is stopped first.
+// ---------- Ask AI ----------
+#[tauri::command]
+fn chat_list(app: tauri::State<'_, App>) -> Vec<chat::ChatSummary> {
+    app.chats.summaries()
+}
+
+#[tauri::command]
+fn chat_get(app: tauri::State<'_, App>, id: String) -> Option<chat::Chat> {
+    app.chats.get(&id)
+}
+
+#[tauri::command]
+fn chat_send(app: tauri::State<'_, App>, chat_id: Option<String>, text: String, mentions: Vec<chat::Mention>, attachments: Option<Vec<chat::Attachment>>, model: Option<String>) -> Res<chat::Chat> {
+    app.chats.send(chat_id, text, mentions, attachments.unwrap_or_default(), model)
+}
+
+/// Attach files from disk (picked or dropped): copied into the staging folder.
+#[tauri::command]
+fn chat_attach(app: tauri::State<'_, App>, paths: Vec<String>) -> chat::Staged {
+    app.chats.stage_paths(&paths)
+}
+
+/// Attach bytes from the window (a pasted image): the body is the file, its name in the x-name header.
+#[tauri::command]
+fn chat_attach_data(app: tauri::State<'_, App>, request: tauri::ipc::Request<'_>) -> Res<chat::Attachment> {
+    let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else { return Err("no data".into()) };
+    let name = request.headers().get("x-name").and_then(|v| v.to_str().ok()).map(|v| percent_encoding::percent_decode_str(v).decode_utf8_lossy().into_owned()).unwrap_or_else(|| "image.png".into());
+    app.chats.stage_bytes(&name, bytes)
+}
+
+#[tauri::command]
+fn chat_stop(app: tauri::State<'_, App>, id: String) {
+    app.chats.stop(&id)
+}
+
+#[tauri::command]
+fn chat_rename(app: tauri::State<'_, App>, id: String, title: String) -> Res<()> {
+    app.chats.rename(&id, &title)
+}
+
+/// Voice typing when the web view can't do speech recognition itself: the system's own dictation
+/// types into the focused box (macOS: Edit › Start Dictation; Windows: voice typing, Win+H).
+#[tauri::command]
+fn dictate(handle: AppHandle) -> Res<()> {
+    #[cfg(target_os = "macos")]
+    {
+        return handle
+            .run_on_main_thread(|| unsafe {
+                use objc2::runtime::AnyObject;
+                use objc2::{class, msg_send, sel};
+                let app: *mut AnyObject = msg_send![class!(NSApplication), sharedApplication];
+                let none: *const AnyObject = std::ptr::null();
+                let _: bool = msg_send![app, sendAction: sel!(startDictation:), to: none, from: none];
+            })
+            .map_err(|e| e.to_string());
+    }
+    #[cfg(windows)]
+    {
+        use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP, VIRTUAL_KEY, VK_LWIN};
+        let _ = handle;
+        let key = |vk: VIRTUAL_KEY, up: bool| INPUT {
+            r#type: INPUT_KEYBOARD,
+            Anonymous: INPUT_0 { ki: KEYBDINPUT { wVk: vk, wScan: 0, dwFlags: if up { KEYEVENTF_KEYUP } else { KEYBD_EVENT_FLAGS(0) }, time: 0, dwExtraInfo: 0 } },
+        };
+        let h = VIRTUAL_KEY(0x48);
+        let keys = [key(VK_LWIN, false), key(h, false), key(h, true), key(VK_LWIN, true)];
+        let sent = unsafe { SendInput(&keys, std::mem::size_of::<INPUT>() as i32) };
+        return if sent == keys.len() as u32 { Ok(()) } else { Err("SendInput failed".into()) };
+    }
+    #[allow(unreachable_code)]
+    {
+        let _ = handle;
+        Err("not supported".into())
+    }
+}
+
+#[tauri::command]
+fn chat_pin(app: tauri::State<'_, App>, id: String, pinned: bool) -> Res<()> {
+    app.chats.pin(&id, pinned)
+}
+
+#[tauri::command]
+fn chat_remove(app: tauri::State<'_, App>, id: String) {
+    app.chats.remove(&id)
+}
+
 #[tauri::command]
 fn app_restart(app: tauri::State<'_, App>, handle: AppHandle) {
     app.runs.shutdown(); // the running item becomes "stopped" with its session kept, ready to continue
@@ -484,7 +615,7 @@ pub fn run() {
             let path = request.uri().path().to_string();
             std::thread::spawn(move || {
                 let file = preview::file_of(&path);
-                let allowed = app.try_state::<App>().is_some_and(|a| preview::previewable(&file, &a.library.history()));
+                let allowed = app.try_state::<App>().is_some_and(|a| preview::previewable(&file, &a.library.history()) || a.chats.serves(&file));
                 responder.respond(preview::respond(&file, allowed));
             });
         })
@@ -514,7 +645,8 @@ pub fn run() {
             // Runs made before notebooks could move (rename / into a project) may still point to the old place.
             let hist = library.history();
             runs.repair_outputs(|run, it| hist.iter().find(|h| library::s(h, "id") == Some(&format!("{}-{}", run.id, it.id))).and_then(|h| library::s(h, "output").map(String::from)));
-            app.manage(App { data_dir, library, runs, engine, last_update: Mutex::new(None) });
+            let chats = chat::Chats::new(&data_dir, Arc::new(ChatHost { app: handle.clone(), data_dir: data_dir.clone(), library: library.clone(), engine: engine.clone() }));
+            app.manage(App { data_dir, library, runs, engine, chats, last_update: Mutex::new(None) });
 
             let win = create_window(&handle)?;
             #[cfg(windows)]
@@ -561,6 +693,7 @@ pub fn run() {
             notebook_rename, notebook_move, notebook_tags, notebook_delete,
             path_preview, path_open, path_reveal, open_external,
             run_start, run_list, run_log, run_action, run_item,
+            chat_list, chat_get, chat_send, chat_stop, chat_rename, chat_pin, chat_remove, dictate, chat_attach, chat_attach_data,
             app_restart, app_version, update_check, update_install,
             engine_ready, engine_reply, engine_read, dev_log, dev_shot, dev_write, dev_quit,
         ])
@@ -571,6 +704,7 @@ pub fn run() {
         if let RunEvent::Exit = event {
             if let Some(a) = handle.try_state::<App>() {
                 a.runs.shutdown();
+                a.chats.shutdown();
             }
         }
     });

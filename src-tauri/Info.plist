@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>StudyLens listens only while you hold the microphone button in Ask AI, to type your question.</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>StudyLens turns what you say into text in the Ask AI box.</string>
+</dict>
+</plist>

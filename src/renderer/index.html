@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'; connect-src 'self' ipc: http://ipc.localhost; frame-src 'self' slpreview: http://slpreview.localhost">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: slpreview: http://slpreview.localhost; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'; connect-src 'self' ipc: http://ipc.localhost; frame-src 'self' slpreview: http://slpreview.localhost">
 <title>StudyLens</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -47,6 +47,7 @@
     <div class="seg side-tabs" id="side-tab" role="tablist">
       <button type="button" data-v="notes"><span data-i18n="nav.tabLibrary"></span></button>
       <button type="button" data-v="runs"><span data-i18n="nav.tabRuns"></span><span class="tab-badge" id="runs-badge" hidden></span></button>
+      <button type="button" data-v="chats"><span data-i18n="nav.tabChat"></span></button>
     </div>
     <div class="side-list" id="history"></div>
     <p class="side-empty" id="history-empty" hidden></p>
@@ -91,6 +92,30 @@
       </div>
       </div>
     </header>
+
+    <!-- Ask AI: a chat about the notebooks; @ mentions notebooks or projects -->
+    <section class="page chat-page" id="page-chat" hidden>
+      <div class="chat-drop" id="chat-drop" hidden><div><span data-icon="upload"></span><b data-i18n="chat.dropTitle"></b><small data-i18n="chat.dropSub"></small></div></div>
+      <div class="chat-scroll" id="chat-scroll"><div class="chat-thread" id="chat-thread"></div></div>
+      <div class="chat-dock">
+        <button class="jump-btn" id="chat-jump" type="button" data-i18n-title="chat.jump" data-i18n-aria="chat.jump" data-icon="chevDown" hidden></button>
+        <div class="mention-pop" id="mention-pop" role="listbox" hidden></div>
+        <form class="composer" id="composer" autocomplete="off">
+          <div class="cmp-files" id="cmp-files" hidden></div>
+          <div class="cmp-chips" id="cmp-chips" hidden></div>
+          <textarea id="chat-input" rows="1" data-i18n-ph="chat.placeholder"></textarea>
+          <div class="cmp-bar">
+            <button class="cmp-clip" id="chat-clip" type="button" data-i18n-title="chat.attachTip" data-i18n-aria="chat.attachTip" data-icon="clip"></button>
+            <button class="cmp-at" id="chat-at" type="button" data-i18n-title="chat.mentionTip"><b>@</b><span data-i18n="chat.mention"></span></button>
+            <button class="cmp-model" id="chat-model" type="button" data-i18n-title="chat.modelHead"><span></span><i data-icon="chevDown"></i></button>
+            <span class="cmp-hint" data-i18n="chat.keys"></span>
+            <button class="mic-btn" id="chat-mic" type="button" data-icon="mic"></button>
+            <button class="send-btn" id="chat-send" type="submit"></button>
+          </div>
+        </form>
+        <p class="chat-foot" data-i18n="chat.foot"></p>
+      </div>
+    </section>
 
     <!-- Home: every project (the top level), then notebooks not in a project yet -->
     <section class="page detail home-page" id="page-home">
@@ -391,6 +416,7 @@
 <script src="bridge.js"></script>
 <script src="engine.js"></script>
 <script src="i18n.js"></script>
+<script src="markdown.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

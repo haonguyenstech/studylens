@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.2
+
+- **Ask AI**: a new tab in the sidebar for chatting with the AI about your notebooks.
+  - Type `@` to mention a notebook or a whole project; the AI reads them (it can't change anything) and answers in Markdown, citing its sources as chips that open quick look at that section or page.
+  - Attach files and images: the 📎 button, drag and drop, or paste a screenshot (up to 10 files, 30 MB each). Word, PowerPoint and Excel are turned into text first.
+  - Speak instead of typing: the 🎤 button (or ⌥Space / Alt+Space), then Enter to send. Uses the system's dictation when the built-in recognition isn't available.
+  - Answers stream in and can be stopped or retried; Mermaid diagrams are drawn, code is highlighted, and three "Ask next" questions follow each answer. Each answer shows its time, cost and model; the model can be picked per chat.
+  - Chats are saved; follow-ups keep the context, also after a restart (if the AI's own session is gone, the app starts a new one with a recap). Pin, rename, delete; "Ask AI" is also on every notebook and project page.
+
 ## 0.3.1
 
 - Much smaller and lighter: StudyLens now runs on Tauri (Rust + the system's own web view) instead of Electron. The installer is about 5 MB on macOS (was 100 MB) and 4 MB on Windows (was 83 MB); the app starts faster and uses less memory.

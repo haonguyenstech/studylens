@@ -15,6 +15,7 @@ process.stdin.on("data", (d) => (prompt += d));
 process.stdin.on("end", async () => {
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   say({ type: "system", subtype: "init", session_id: sid });
+  if (!existsSync("input")) return chat(wait);   // Ask AI: no job folder, just a question
   const input = readdirSync("input")[0] || "doc";
   if (resumed) say({ type: "assistant", session_id: sid, message: { content: [{ type: "text", text: `Resumed session ${sid.slice(0, 8)}: continuing out/.` }] } });
   say({ type: "assistant", session_id: sid, message: { content: [{ type: "tool_use", name: "Read", input: { file_path: `input/${input}` } }] } });
@@ -59,3 +60,44 @@ process.stdin.on("end", async () => {
   await wait(delay);
   say({ type: "result", subtype: "success", is_error: false, session_id: sid, total_cost_usd: 0.42, num_turns: 3 });
 });
+
+// Ask AI: "reads" the first referenced file, then streams a Markdown answer in small pieces.
+async function chat(wait) {
+  if (resumed.startsWith("gone")) { process.stderr.write(`No conversation found with session ID: ${resumed}`); process.exit(1); }
+  const files = [...prompt.matchAll(/- (?:notebook \(HTML\)|source|"[^"]+" \((?:image|file)\)): (.+)/g)].map((m) => m[1]);
+  const question = prompt.split("User:\n").pop().trim();
+  if (files[0]) {
+    say({ type: "assistant", session_id: sid, message: { content: [{ type: "tool_use", name: "Grep", input: { pattern: question.split(/\s+/)[0] || "x" } }] } });
+    await wait(delay / 2);
+    say({ type: "assistant", session_id: sid, message: { content: [{ type: "tool_use", name: "Read", input: { file_path: files[0] } }] } });
+    await wait(delay / 2);
+  }
+  if (/fail please/i.test(question)) { process.stderr.write("simulated chat failure"); process.exit(1); }
+  const answer = [
+    `## ${resumed ? "Tiếp tục" : "Trả lời"}`,
+    `Bạn hỏi: *${question.slice(0, 80)}*`,
+    /Earlier in this conversation \(a recap/.test(prompt) ? "(Phiên mới, có recap của cuộc trò chuyện.)" : "",
+    files.length ? `Mình đã đọc **${files.length}** file, ví dụ \`${files[0].split(/[\\/]/).pop()}\`.` : "Chưa có tài liệu nào được nhắc tới.",
+    "",
+    "- Ý thứ nhất\n- Ý thứ hai\n  - ý con",
+    "",
+    "| Khái niệm | Ý nghĩa |\n|---|---|\n| Cache | Lưu tạm để đọc nhanh |",
+    "",
+    "```js\n// hit or miss\nconst hit = cache.get(key);\nif (!hit) return \"miss\";\n```",
+    "",
+    "```mermaid\nflowchart LR\n  A[Request] --> B{In cache?}\n  B -->|yes| C[Hit]\n  B -->|no| D[Miss]\n```",
+    files[0] ? `Nguồn: [${files[0].split(/[\\/]/).pop()} · mục 1](<cite:${files[0]}#sec1>)` : "",
+    "",
+    "[[FOLLOWUPS]]",
+    "- Cache miss xảy ra khi nào?",
+    "- So sánh write-through và write-back?",
+    "- TTL nên đặt bao lâu?",
+  ].join("\n");
+  say({ type: "stream_event", session_id: sid, parent_tool_use_id: null, event: { type: "content_block_start", content_block: { type: "text" } } });
+  for (let i = 0; i < answer.length; i += 12) {
+    say({ type: "stream_event", session_id: sid, parent_tool_use_id: null, event: { type: "content_block_delta", delta: { type: "text_delta", text: answer.slice(i, i + 12) } } });
+    await wait(Math.max(5, delay / 25));
+  }
+  say({ type: "assistant", session_id: sid, message: { content: [{ type: "text", text: answer }] } });
+  say({ type: "result", subtype: "success", is_error: false, session_id: sid, result: answer, total_cost_usd: 0.01, num_turns: 1 });
+}

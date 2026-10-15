@@ -45,6 +45,12 @@
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.8v2M12 19.2v2M21.2 12h-2M4.8 12h-2M18.5 5.5l-1.4 1.4M6.9 17.1l-1.4 1.4M18.5 18.5l-1.4-1.4M6.9 6.9 5.5 5.5"/>',
     moon: '<path d="M19.5 14.6A7.8 7.8 0 0 1 9.4 4.5a7.8 7.8 0 1 0 10.1 10.1Z"/>',
     auto: '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" stroke="none"/>',
+    chat: '<path d="M5.5 5h13A1.5 1.5 0 0 1 20 6.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5V17h0A1.5 1.5 0 0 1 4 15.5v-9A1.5 1.5 0 0 1 5.5 5Z"/><path d="M8.5 10h7M8.5 13h4.5"/>',
+    send: '<path d="M12 19V5.5M6 11l6-6 6 6"/>',
+    mic: '<rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5"/>',
+    pin: '<path d="M9.5 4.5h5l-.8 5.2 3.3 3.3v1.5H7v-1.5l3.3-3.3Z"/><path d="M12 14.5V20"/>',
+    clip: '<path d="m19.5 11.5-7.6 7.6a4.6 4.6 0 0 1-6.5-6.5l8.2-8.2a3.1 3.1 0 0 1 4.4 4.4l-8.1 8.1a1.6 1.6 0 0 1-2.3-2.3l7.4-7.4"/>',
+    copy: '<rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6A1.5 1.5 0 0 0 14 4.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/>',
     stack: '<rect x="4.5" y="4" width="15" height="16" rx="2"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/>',
   };
   const icon = (name) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ""}</svg>`;
@@ -182,6 +188,7 @@
     $("page-detail").hidden = p !== "detail";
     $("page-run").hidden = p !== "run";
     $("page-project").hidden = p !== "project";
+    $("page-chat").hidden = p !== "chat";
     $("nav-home").classList.toggle("on", p === "home");
     setCrumb(null);
     if (p === "new") {
@@ -192,12 +199,15 @@
     }
     if (p === "run" && sideTab !== "runs") { sideTab = "runs"; setSeg("side-tab", "runs"); }
     if ((p === "project" || p === "detail") && sideTab !== "notes") { sideTab = "notes"; setSeg("side-tab", "notes"); }
+    if (p === "chat" && sideTab !== "chats") { sideTab = "chats"; setSeg("side-tab", "chats"); }
+    if (p !== "chat") { closePicker(); if (typeof stopVoice === "function") stopVoice(); }
     renderHistory();
     paintHomeNav();
     if (p === "home") renderHome(changed);
     if (p === "detail") renderDetail();
     if (p === "project") renderProject(changed);
     if (p === "run") renderRun(changed);
+    if (p === "chat") renderChat(changed);
   }
   $("nav-home").addEventListener("click", () => show("home"));
   $("btn-new-top").addEventListener("click", () => openProjectDialog());
@@ -339,6 +349,7 @@
   }
   function renderHistory() {
     if (sideTab === "runs") return renderRunList();
+    if (sideTab === "chats") return renderChatList();
     const raw = $("q").value, Q = parseQuery(raw), q = !Q.empty;
     const hit = (h) => matchNote(h, Q);
     const box = $("history");
@@ -468,6 +479,7 @@
       add(t("pv.quick"), "eye", () => openPreview(h), "prominent", !h.exists);
       add(t("pv.external"), "open", () => openFile(h.output), "", !h.exists);
       add(revealLabel(), "folder", () => api.revealPath(h.output), "", !h.exists);
+      add(t("chat.ask"), "chat", () => openChat(null, mentionOf("notebook", h)), "", !h.exists);
     } else {
       add(t("run.workDir"), "work", () => openFile(h.workDir));
       add(t("run.retry"), "redo", (e) => rerun(h, e.currentTarget));
@@ -647,6 +659,7 @@
       !fromDetail && h.status === "done" && { label: t("pv.quick"), icon: "eye", run: () => openPreview(h), disabled: !h.exists },
       !fromDetail && h.status === "done" && { label: t("pv.external"), icon: "open", run: () => openFile(h.output), disabled: !h.exists },
       !fromDetail && h.status === "done" && { label: revealLabel(), icon: "folder", run: () => api.revealPath(h.output), disabled: !h.exists },
+      !fromDetail && h.status === "done" && { label: t("chat.ask"), icon: "chat", run: () => openChat(null, mentionOf("notebook", h)), disabled: !h.exists },
       !fromDetail && "-",
       { label: t("nb.rename"), icon: "pencil", run: () => renameNotebook(h) },
       { label: t("nb.tags"), icon: "tag", run: () => openTagsDialog(h) },
@@ -775,6 +788,7 @@
     return [
       { label: t("pj.newNote"), icon: "spark", run: () => newNotebookIn(p.id) },
       { label: t("pj.openFolder"), icon: "folder", run: () => openFile(p.dir), disabled: p.exists === false },
+      { label: t("chat.ask"), icon: "chat", run: () => openChat(null, mentionOf("project", p)), disabled: !notesOf(p.id).some((h) => h.status === "done") },
       "-",
       { label: t("pj.edit"), icon: "pencil", run: () => openProjectDialog(p) },
       { label: t("pj.remove"), icon: "trash", danger: true, run: () => confirmRemoveProject(p) },
@@ -914,6 +928,7 @@
     };
     add(t("pj.newNote"), "spark", () => newNotebookIn(p.id), "prominent");
     add(t("pj.openFolder"), "folder", () => openFile(p.dir), "", p.exists === false);
+    add(t("chat.ask"), "chat", () => openChat(null, mentionOf("project", p)), "", !notes.some((h) => h.status === "done"));
     add(t("pj.edit"), "pencil", () => openProjectDialog(p));
     add(t("pj.remove"), "trash", () => confirmRemoveProject(p), "danger");
     if (full) countUp(view.querySelector(".stats"));
@@ -1115,8 +1130,9 @@
   // Chromium's viewer (which a sandboxed frame would block), images and text show as they are.
   const PV_KIND = { html: "html", htm: "html", pdf: "pdf", png: "img", jpg: "img", jpeg: "img", gif: "img", webp: "img", svg: "img", txt: "text", md: "text", csv: "text", json: "text" };
   const pv = { h: null, items: [], i: 0, seq: 0 };
-  function openPreview(h, start) {
+  function openPreview(h, start, hash) {
     pv.h = h;
+    pv.hash = hash || "";
     pv.items = [...(h.status === "done" && h.output ? [{ label: t("pv.notebook"), path: h.output, main: true }] : []), ...h.files.map((f) => ({ label: nameOf(f), path: f }))];
     pv.i = Math.max(0, start ? pv.items.findIndex((x) => x.path === start) : 0);
     $("pv-name").textContent = h.title;
@@ -1187,7 +1203,8 @@
     frame.title = it.label;
     $("pv-load").hidden = false;
     frame.onload = () => { if (seq === pv.seq) $("pv-load").hidden = true; };
-    frame.src = url;
+    frame.src = url + (pv.hash && i === pv.i ? pv.hash : "");
+    pv.hash = "";
   }
   function closePreview() {
     const box = $("preview");
@@ -1259,6 +1276,7 @@
     $("eng-err").hidden = st !== "bad";
     $("eng-err").textContent = aiInfo?.error || "";
     $("eng-check").disabled = st === "checking";
+    if (page === "chat") paintSend();
   }
   async function checkAI() {
     aiInfo = null;
@@ -1566,6 +1584,7 @@
     return null;
   }
   function filesEnter() {
+    if (page === "chat") { chatDropShow(true); return true; }
     if (running) return false;
     const ctx = dropProject();
     if (!ctx) return false;              // home / runs: no project to put the files in
@@ -1576,6 +1595,7 @@
   }
   function filesLeave() {
     dragDepth = 0;
+    chatDropShow(false);
     drop.classList.remove("over");
     setDropTitle();
   }
@@ -1588,6 +1608,7 @@
         const was = inside;
         inside = false;
         filesLeave();
+        if (was && page === "chat" && e.paths.length) return attachPaths(e.paths);
         if (!was || page !== "new" || running || !e.paths.length) return;
         addPaths(e.paths, { x: e.x, y: e.y });
       }
@@ -1598,13 +1619,21 @@
       e.preventDefault();
       dragDepth++;
     });
-    document.addEventListener("dragover", (e) => { if (hasFiles(e) && dropProject()) e.preventDefault(); });
+    document.addEventListener("dragover", (e) => { if (hasFiles(e) && (dropProject() || page === "chat")) e.preventDefault(); });
     document.addEventListener("dragleave", (e) => {
       if (!hasFiles(e)) return;
       if (--dragDepth <= 0) filesLeave();
     });
     document.addEventListener("drop", async (e) => {
       filesLeave();
+      if (e.dataTransfer.files.length && page === "chat") {
+        e.preventDefault();
+        const list = [...e.dataTransfer.files];
+        const paths = await api.pathsForFiles(list);
+        attachPaths(paths.filter(Boolean));
+        attachBlobs(list.filter((_, i) => !paths[i]));
+        return;
+      }
       if (!e.dataTransfer.files.length || page !== "new") return;
       e.preventDefault();
       if (running) return;
@@ -2101,6 +2130,758 @@
     $("ud-phase").textContent = p.phase === "download" ? t("up.download", { pct }) : t(p.phase === "verify" ? "up.verify" : "up.installing");
   });
 
+  // ---------- Ask AI ----------
+  // ChatGPT-style chats about the notebooks. "@" in the composer picks a notebook or a whole project;
+  // the app hands Claude those files (read-only) and streams the answer back (chat:stream), then the
+  // saved message (chat:update). A chat is one Claude session, so follow-ups keep the context.
+  let chats = [];                 // summaries, newest first
+  const chatCache = new Map();    // id → full chat
+  const draft = { text: "", mentions: [], files: [] };   // the composer of a new chat (selected === null)
+  const drafts = new Map();       // per chat: unsent text and mentions
+  const live = new Map();         // msgId → { text, activity } while streaming
+  let pickerState = null;         // { at, q, items, i }
+  const seenMsgs = new Set();     // messages already shown (only new ones animate in)
+
+  async function loadChats() {
+    try { chats = await api.listChats(); } catch { chats = []; }
+    if (sideTab === "chats") renderHistory();
+  }
+  const chatOf = (id) => chats.find((c) => c.id === id);
+  const draftOf = () => (selected ? drafts.get(selected) || (drafts.set(selected, { text: "", mentions: [], files: [] }), drafts.get(selected)) : draft);
+
+  function renderChatList() {
+    const q = fold($("q").value.trim());
+    const box = $("history");
+    box.textContent = "";
+    const nb = document.createElement("button");
+    nb.type = "button";
+    nb.className = "side-item chat-new" + (page === "chat" && !selected ? " on" : "");
+    nb.innerHTML = `<span class="tile new-tile">${icon("plus")}</span><span class="txt"><b></b><small></small></span>`;
+    nb.querySelector("b").textContent = t("chat.new");
+    nb.querySelector("small").textContent = t("chat.newSub");
+    nb.addEventListener("click", () => openChat(null));
+    box.appendChild(nb);
+    const list = chats.filter((c) => !q || fold(c.title).includes(q) || fold(c.last).includes(q));
+    const pinned = list.filter((c) => c.pinned), rest = list.filter((c) => !c.pinned);
+    let i = 0;
+    for (const [head, group] of [[t("chat.pinned"), pinned], [t("chat.recent"), rest]]) {
+      if (!group.length) continue;
+      box.appendChild(groupHead(head));
+      group.forEach((c) => box.appendChild(chatRow(c, i++)));
+    }
+    const empty = !chats.length ? t("chat.none") : !list.length ? t("nav.noMatch") : "";
+    $("history-empty").textContent = empty;
+    $("history-empty").hidden = !empty;
+  }
+  function chatRow(c, i) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "side-item chat-row" + (page === "chat" && selected === c.id ? " on" : "");
+    animateRow(b, "c:" + c.id, i);
+    b.innerHTML = `<span class="tile chat-tile">${c.busy ? '<span class="r-spin"></span>' : icon("chat")}</span><span class="txt"><b></b><small></small></span>` +
+      `<span class="chat-pin${c.pinned ? " on" : ""}" role="button" tabindex="-1" title="${esc(t(c.pinned ? "chat.unpin" : "chat.pin"))}">${icon("pin")}</span>`;
+    b.querySelector(".chat-pin").addEventListener("click", (e) => { e.stopPropagation(); pinChat(c, !c.pinned); });
+    b.querySelector("b").textContent = c.title;
+    b.querySelector("small").textContent = `${ago(c.updatedAt)}${c.last ? " · " + c.last.replace(/\s+/g, " ") : ""}`;
+    b.addEventListener("click", () => openChat(c.id));
+    b.addEventListener("contextmenu", (e) => { e.preventDefault(); openMenu({ x: e.clientX, y: e.clientY }, chatMenu(c)); });
+    return b;
+  }
+  async function pinChat(c, on) {
+    await libCall(() => api.pinChat(c.id, on));
+  }
+  function chatMenu(c) {
+    return [
+      { label: t(c.pinned ? "chat.unpin" : "chat.pin"), icon: "pin", run: () => pinChat(c, !c.pinned) },
+      { label: t("chat.rename"), icon: "pencil", run: () => renameChat(c) },
+      "-",
+      { label: t("chat.delete"), icon: "trash", danger: true, run: () => confirmDialog(t("chat.deleteTitle"), t("chat.deleteText", { title: c.title }), t("chat.delete"), async () => {
+        await libCall(() => api.removeChat(c.id));
+      }) },
+    ];
+  }
+  async function renameChat(c) {
+    const title = await promptDialog({ title: t("chat.rename"), value: c.title, ok: t("chat.renameOk") });
+    if (title && title.trim() && title.trim() !== c.title) await libCall(() => api.renameChat(c.id, title.trim()));
+  }
+
+  // Open a chat (null: a new one), optionally with a notebook / project already mentioned.
+  async function openChat(id, mention) {
+    if (sideTab !== "chats") setTab("chats");
+    show("chat", id);
+    if (id && !chatCache.has(id)) {
+      const c = await api.getChat(id).catch(() => null);
+      if (!c) { loadChats(); return openChat(null); }
+      chatCache.set(id, c);
+      if (page === "chat" && selected === id) renderChat(true);
+    }
+    if (mention) {
+      const d = draftOf();
+      if (!d.mentions.some((m) => m.kind === mention.kind && m.id === mention.id)) d.mentions.push(mention);
+      d.text = (d.text.trim() ? d.text.replace(/\s*$/, " ") : "") + "@" + mention.title + " ";
+      paintComposer();
+    }
+    focusComposer();
+  }
+  const mentionOf = (kind, x) => (kind === "project" ? { kind, id: x.id, title: x.name } : { kind, id: x.id, title: x.title });
+
+  function renderChat(full) {
+    const c = selected ? chatCache.get(selected) : null;
+    $("page-title").textContent = c ? c.title : t("chat.title");
+    $("page-sub").textContent = c && c.mentions?.length ? t("chat.docs", { n: c.mentions.length }) : "";
+    const thread = $("chat-thread");
+    thread.textContent = "";
+    if (!c || !c.messages.length) thread.appendChild(chatEmpty());
+    else c.messages.forEach((m) => thread.appendChild(messageEl(m, c)));
+    paintComposer();
+    paintSend();
+    if (full) requestAnimationFrame(() => scrollChat(true));
+  }
+  function chatEmpty() {
+    const d = document.createElement("div");
+    d.className = "chat-empty";
+    d.innerHTML = `<span class="chat-hero">${icon("spark")}</span><h2></h2><p></p><div class="chat-sugs"></div>`;
+    d.querySelector("h2").textContent = t("chat.hello");
+    d.querySelector("p").textContent = t("chat.helloSub");
+    const sugs = d.querySelector(".chat-sugs");
+    const recent = history.filter((h) => h.status === "done" && h.exists).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+    const pick = recent[0];
+    const ideas = pick
+      ? [["chat.sugSummary", pick], ["chat.sugQuiz", pick], ["chat.sugExplain", pick]]
+      : [];
+    const pj = projects.find((p) => notesOf(p.id).length > 1);
+    if (pj) ideas.push(["chat.sugProject", pj]);
+    for (const [key, x] of ideas) {
+      const proj = key === "chat.sugProject";
+      const m = mentionOf(proj ? "project" : "notebook", x);
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chat-sug";
+      const [pre, post] = t(key, { doc: "\u0001" }).split("\u0001");
+      b.innerHTML = `${esc(pre)}<span class="mtag">@${esc(m.title)}</span>${esc(post ?? "")}`;
+      b.addEventListener("click", () => {
+        const d = draftOf();
+        d.mentions = [m];
+        d.text = `${pre}@${m.title}${post ?? ""}`;
+        paintComposer();
+        focusComposer();
+      });
+      sugs.appendChild(b);
+    }
+    if (!ideas.length) sugs.innerHTML = `<p class="chat-none">${esc(t("chat.noNotes"))}</p>`;
+    return d;
+  }
+  // "@Title" in a user's message shows as a tag (clickable: opens that notebook or project).
+  function withMentions(text, mentions) {
+    let html = esc(text);
+    const list = (mentions || []).slice().sort((a, b) => b.title.length - a.title.length);
+    list.forEach((m, k) => { html = html.split(esc("@" + m.title)).join(`\u0002${k}\u0002`); });
+    return html.replace(/\u0002(\d+)\u0002/g, (_, k) => {
+      const m = list[+k];
+      return `<button type="button" class="mtag" data-kind="${m.kind}" data-id="${esc(m.id)}">@${esc(m.title)}</button>`;
+    });
+  }
+  function messageEl(m, c) {
+    const el = document.createElement("div");
+    el.className = "msg " + m.role + (seenMsgs.has(m.id) ? "" : " enter");
+    seenMsgs.add(m.id);
+    el.dataset.id = m.id;
+    if (m.role === "user") {
+      el.innerHTML = `<div class="msg-files"></div><div class="bubble">${withMentions(m.text, m.mentions)}</div>`;
+      const box = el.querySelector(".msg-files");
+      (m.attachments || []).forEach((a) => box.appendChild(fileTile(a, null)));
+      if (!m.attachments?.length) box.remove();
+      el.querySelectorAll(".mtag").forEach((b) => b.addEventListener("click", () => {
+        if (b.dataset.kind === "project" && projOf(b.dataset.id)) show("project", b.dataset.id);
+        else if (history.some((h) => h.id === b.dataset.id)) show("detail", b.dataset.id);
+        else toast(t("chat.gone"));
+      }));
+      return el;
+    }
+    el.innerHTML = `<span class="msg-ava">${icon("spark")}</span><div class="msg-body"><div class="md"></div><div class="msg-act"></div><div class="msg-foot"></div></div>`;
+    paintAnswer(el, m, c);
+    return el;
+  }
+  function paintAnswer(el, m, c) {
+    const md = el.querySelector(".md"), foot = el.querySelector(".msg-foot"), act = el.querySelector(".msg-act");
+    const streaming = m.status === "streaming";
+    const lv = live.get(m.id);
+    const text = streaming && lv ? withoutFollowups(lv.text) : m.text;
+    md.innerHTML = text ? window.renderMarkdown(text) : streaming ? '<span class="typing"><i></i><i></i><i></i></span>' : "";
+    if (!streaming) drawDiagrams(md);
+    el.classList.toggle("streaming", streaming);
+    act.textContent = streaming && lv?.activity ? lv.activity : "";
+    act.hidden = !act.textContent;
+    foot.textContent = "";
+    if (m.status === "error") {
+      const box = document.createElement("div");
+      box.className = "msg-err";
+      box.innerHTML = `${icon("warn")}<span></span>`;
+      box.querySelector("span").textContent = m.error || t("chat.failed");
+      foot.appendChild(box);
+    }
+    if (m.status === "stopped") {
+      const s = document.createElement("span");
+      s.className = "msg-note"; s.textContent = t("chat.stopped");
+      foot.appendChild(s);
+    }
+    if (!streaming) {
+      const bar = document.createElement("div");
+      bar.className = "msg-tools";
+      if (m.text) bar.appendChild(toolBtn("copy", t("chat.copy"), (b) => copyText(m.text, b)));
+      const last = c.messages[c.messages.length - 1] === m;
+      if (last && (m.status === "error" || m.status === "stopped")) bar.appendChild(toolBtn("redo", t("chat.retry"), () => retryLast(c)));
+      const stats = answerStats(m);
+      if (stats) {
+        const st = document.createElement("span");
+        st.className = "msg-stats"; st.textContent = stats;
+        bar.appendChild(st);
+      }
+      if (bar.children.length) foot.appendChild(bar);
+      if (last && m.status === "done" && m.followups?.length) foot.appendChild(followupsEl(m.followups));
+    }
+    md.querySelectorAll("[data-copy]").forEach((b) => {
+      b.innerHTML = icon("copy") + `<span>${esc(t("chat.copy"))}</span>`;
+      b.addEventListener("click", () => copyText(b.closest(".md-code").querySelector("code").textContent, b));
+    });
+  }
+  // While streaming, the follow-up block at the end (and a half-written marker) stays hidden.
+  const FOLLOW = "[[FOLLOWUPS]]";
+  function withoutFollowups(text) {
+    const i = text.indexOf(FOLLOW);
+    if (i >= 0) return text.slice(0, i);
+    for (let n = FOLLOW.length - 1; n > 0; n--) if (text.endsWith(FOLLOW.slice(0, n))) return text.slice(0, -n);
+    return text;
+  }
+  // "27s · $0.41 · Sonnet"
+  function answerStats(m) {
+    const parts = [];
+    if (m.ms != null) parts.push(m.ms < 60000 ? (m.ms / 1000).toFixed(m.ms < 10000 ? 1 : 0) + "s" : fmtDur(Math.round(m.ms / 1000)));
+    if (m.costUsd != null) parts.push("$" + m.costUsd.toFixed(m.costUsd < 0.1 ? 3 : 2));
+    if (m.model != null) parts.push(modelName(m.model));
+    return parts.join(" · ");
+  }
+  function followupsEl(list) {
+    const box = document.createElement("div");
+    box.className = "followups";
+    box.innerHTML = `<span class="fu-h">${esc(t("chat.next"))}</span>`;
+    list.forEach((q) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "fu";
+      b.innerHTML = `${icon("chev")}<span></span>`;
+      b.querySelector("span").textContent = q;
+      b.addEventListener("click", () => { if (!busyChat() && claudeOk) sendChat(q, [], [], draftOf().model); });
+      box.appendChild(b);
+    });
+    return box;
+  }
+  // ```mermaid blocks of a finished answer, drawn by the engine's Mermaid. Each code is drawn once
+  // (the thread re-renders often); when it's ready it goes into every block showing that code.
+  const drawn = new Map();     // code → { svg } | { error }
+  const drawing = new Map();   // code → promise
+  function drawDiagrams(md) {
+    if (!window.studylensDraw) return;
+    for (const code of new Set([...md.querySelectorAll(".md-mermaid")].map((b) => b.dataset.code))) {
+      if (drawn.has(code)) { placeDiagrams(md); continue; }   // md may not be in the page yet
+      if (drawing.has(code)) continue;
+      drawing.set(code, window.studylensDraw([code])
+        .then((r) => r[0] || { error: "?" }, (e) => ({ error: String(e?.message || e) }))
+        .then((d) => {
+          drawn.set(code, d);
+          drawing.delete(code);
+          if (d.error) window.__TAURI__?.core.invoke("dev_log", { msg: "[chat] diagram: " + d.error }).catch(() => {});
+          placeDiagrams($("chat-thread"));
+        }));
+    }
+  }
+  function placeDiagrams(root) {
+    for (const b of root.querySelectorAll(".md-mermaid:not(.drawn)")) {
+      const d = drawn.get(b.dataset.code);
+      if (!d?.svg) continue;
+      const fig = document.createElement("figure");
+      fig.className = "md-diagram";
+      const img = document.createElement("img");
+      img.alt = t("chat.diagram");
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(d.svg);   // an image: nothing in it can run
+      const tog = document.createElement("button");
+      tog.type = "button"; tog.className = "md-diagram-code"; tog.textContent = t("chat.showCode");
+      tog.addEventListener("click", () => { b.classList.toggle("show-code"); tog.textContent = t(b.classList.contains("show-code") ? "chat.showDiagram" : "chat.showCode"); });
+      fig.append(img, tog);
+      b.prepend(fig);
+      b.classList.add("drawn");
+    }
+  }
+  function toolBtn(ic, label, fn) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "msg-tool"; b.title = label; b.setAttribute("aria-label", label);
+    b.innerHTML = icon(ic) + `<span>${esc(label)}</span>`;
+    b.addEventListener("click", () => fn(b));
+    return b;
+  }
+  async function copyText(text, b) {
+    try { await navigator.clipboard.writeText(text); } catch { return; }
+    const span = b.querySelector("span"), was = span?.textContent;
+    b.classList.add("done");
+    if (span) span.textContent = t("chat.copied");
+    setTimeout(() => { b.classList.remove("done"); if (span) span.textContent = was; }, 1400);
+  }
+  async function retryLast(c) {
+    const q = [...c.messages].reverse().find((m) => m.role === "user");
+    if (!q) return;
+    let files = [];
+    if (q.attachments?.length) {
+      const st = await api.attachFiles(q.attachments.map((a) => a.path)).catch(() => ({ files: [] }));
+      files = st.files;
+    }
+    sendChat(q.text, q.mentions || [], files);
+  }
+  // Links in answers open in the browser.
+  $("chat-thread").addEventListener("click", (e) => {
+    const cite = e.target.closest("button.cite");
+    if (cite) return openCite(cite.dataset.cite);
+    const a = e.target.closest("a[data-ext]");
+    if (!a) return;
+    e.preventDefault();
+    api.openExternal(a.getAttribute("href"));
+  });
+  // A source chip: the notebook (or its source file) opens in quick look, at the cited part.
+  function openCite(target) {
+    let ref = target.replace(/^cite:/, "");
+    const hash = ref.includes("#") ? ref.slice(ref.indexOf("#")) : "";
+    ref = hash ? ref.slice(0, ref.indexOf("#")) : ref;
+    const tries = [ref];
+    try { tries.push(decodeURI(ref)); } catch { /* not encoded */ }
+    const norm = (p) => (p || "").replace(/\\/g, "/").toLowerCase();
+    for (const p of tries) {
+      const h = history.find((x) => norm(x.output) === norm(p) || x.files.some((f) => norm(f) === norm(p)));
+      if (h) return openPreview(h, [h.output, ...h.files].find((f) => norm(f) === norm(p)), hash);
+    }
+    const c = selected && chatCache.get(selected);
+    const att = c?.messages.flatMap((m) => m.attachments || []).find((a) => tries.some((p) => norm(a.path) === norm(p)));
+    if (att) return openFile(att.path);
+    toast(t("chat.citeGone"), null, "bad");
+  }
+
+  // While an answer streams in, the thread follows its end. Scrolling up stops that (to read on in
+  // peace); scrolling back to the end, or the ↓ button, starts it again.
+  const scroller = $("chat-scroll");
+  let follow = true, lastTop = 0;
+  const fromEnd = () => scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
+  function scrollChat(force) {
+    if (force) follow = true;
+    // Moved up since we last put it at the end (scrollbar, keys…), and its scroll event isn't in yet.
+    else if (scroller.scrollTop < lastTop - 1) follow = fromEnd() < 24;
+    if (follow) scroller.scrollTop = scroller.scrollHeight;
+    lastTop = scroller.scrollTop;
+    paintJump();
+  }
+  scroller.addEventListener("scroll", () => {
+    const top = scroller.scrollTop;
+    if (top < lastTop - 1) follow = fromEnd() < 24;   // moved up: only the user does that
+    else if (fromEnd() < 24) follow = true;
+    lastTop = top;
+    paintJump();
+  }, { passive: true });
+  const stopFollow = () => { if (scroller.scrollHeight > scroller.clientHeight) { follow = false; paintJump(); } };
+  scroller.addEventListener("wheel", (e) => { if (e.deltaY < 0) stopFollow(); }, { passive: true });
+  scroller.addEventListener("keydown", (e) => { if (["ArrowUp", "PageUp", "Home"].includes(e.key)) stopFollow(); });
+  function paintJump() {
+    const j = $("chat-jump");
+    const show = !follow && fromEnd() > 80;
+    j.hidden = !show;
+    j.classList.toggle("live", show && !!selected && !!chatOf(selected)?.busy);
+  }
+  $("chat-jump").addEventListener("click", () => {
+    follow = true;
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" });
+    paintJump();
+  });
+
+  // ----- Composer -----
+  const input = $("chat-input");
+  const busyChat = () => !!(selected && chatOf(selected)?.busy);
+  function paintComposer() {
+    const d = draftOf();
+    paintFiles(d);
+    if (input.value !== d.text) input.value = d.text;
+    // Mentions whose @Title is gone from the text are dropped.
+    d.mentions = d.mentions.filter((m) => d.text.includes("@" + m.title));
+    const chips = $("cmp-chips");
+    chips.textContent = "";
+    chips.hidden = !d.mentions.length;
+    d.mentions.forEach((m) => {
+      const s = document.createElement("span");
+      s.className = "cmp-chip";
+      const tile = m.kind === "project" ? folderTile(projOf(m.id) || { color: "#8E8E93" }, "xs") : tileHTML(m.title, "xs");
+      s.innerHTML = `${tile}<span></span><button type="button" aria-label="${esc(t("chat.unmention"))}">${icon("x")}</button>`;
+      s.querySelector("span:not(.tile)").textContent = m.title;
+      s.querySelector("button").addEventListener("click", () => {
+        d.text = d.text.split("@" + m.title).join("").replace(/ {2,}/g, " ");
+        d.mentions = d.mentions.filter((x) => x !== m);
+        paintComposer();
+        focusComposer();
+      });
+      chips.appendChild(s);
+    });
+    autoGrow();
+    paintSend();
+  }
+  // The model for this chat (a new chat starts with the last one picked here).
+  const chatModel = () => { const d = draftOf(); return d.model ?? (selected ? chatCache.get(selected)?.model : store.get("chatModel", "")) ?? ""; };
+  function paintModel() {
+    $("chat-model").querySelector("span").textContent = modelName(chatModel());
+  }
+  $("chat-model").addEventListener("click", (e) => {
+    const cur = chatModel();
+    openMenu(e.currentTarget, [
+      { head: t("chat.modelHead") },
+      ...[["", t("chat.mDefault")], ["haiku", "Haiku · " + t("chat.mFast")], ["sonnet", "Sonnet · " + t("chat.mBalanced")], ["opus", "Opus · " + t("chat.mBest")]].map(([v, label]) => ({
+        label, check: cur === v, run: () => { draftOf().model = v; if (!selected) store.set("chatModel", v); paintModel(); focusComposer(); },
+      })),
+    ]);
+  });
+  function paintSend() {
+    paintModel();
+    paintMic();
+    const b = $("chat-send");
+    const busy = busyChat();
+    b.classList.toggle("stop", busy);
+    b.innerHTML = icon(busy ? "stop" : "send");
+    b.title = t(busy ? "chat.stop" : "chat.send");
+    b.setAttribute("aria-label", b.title);
+    const d = draftOf();
+    b.disabled = !busy && ((!input.value.trim() && !d.files.length) || !claudeOk || attaching);
+    $("composer").classList.toggle("no-ai", !claudeOk);
+  }
+  function autoGrow() {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 220) + "px";
+  }
+  function focusComposer() {
+    requestAnimationFrame(() => { input.focus(); input.setSelectionRange(input.value.length, input.value.length); });
+  }
+  input.addEventListener("input", () => {
+    draftOf().text = input.value;
+    paintComposer();
+    updatePicker();
+  });
+  input.addEventListener("click", updatePicker);
+  input.addEventListener("blur", () => setTimeout(() => { if (document.activeElement !== input) closePicker(); }, 120));
+  input.addEventListener("keydown", (e) => {
+    if (e.isComposing || e.keyCode === 229) return;   // Vietnamese / CJK input methods
+    if (pickerState) {
+      const n = pickerState.items.length;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); pickerState.i = (pickerState.i + (e.key === "ArrowDown" ? 1 : n - 1)) % n; paintPicker(); return; }
+      if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); choose(pickerState.items[pickerState.i]); return; }
+      if (e.key === "Escape") { e.preventDefault(); closePicker(); return; }
+    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (voice) stopVoice(); $("composer").requestSubmit(); }
+  });
+  $("composer").addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (busyChat()) { api.stopChat(selected); return; }
+    stopVoice();
+    const d = draftOf();
+    if ((!d.text.trim() && !d.files.length) || !claudeOk || attaching) return;
+    sendChat(d.text, d.mentions.filter((m) => d.text.includes("@" + m.title)), d.files, chatModel());
+  });
+  $("chat-at").addEventListener("click", () => {
+    const pos = input.selectionStart ?? input.value.length;
+    const before = input.value.slice(0, pos);
+    const add = (before && !/\s$/.test(before) ? " " : "") + "@";
+    input.setRangeText(add, pos, input.selectionEnd ?? pos, "end");
+    draftOf().text = input.value;
+    input.focus();
+    updatePicker();
+  });
+
+  async function sendChat(text, mentions, files = [], model = chatModel()) {
+    const id = selected;
+    try {
+      const c = await api.sendChat(id, text, mentions, files, model ?? null);
+      chatCache.set(c.id, c);
+      if (id) drafts.set(id, { text: "", mentions: [], files: [] });
+      else { draft.text = ""; draft.mentions = []; draft.files = []; delete draft.model; }
+      upsertSummary(c, true);
+      if (!id) { selected = c.id; show("chat", c.id); }
+      else renderChat(false);
+      requestAnimationFrame(() => scrollChat(true));
+    } catch (e) {
+      toast(cleanErr(e), null, "bad");
+    }
+  }
+  function upsertSummary(c, busy) {
+    const last = [...c.messages].reverse().find((m) => m.text)?.text || "";
+    const s = { id: c.id, title: c.title, pinned: !!c.pinned, updatedAt: c.updatedAt, last: last.replace(/[#*`>|~]/g, "").replace(/\s+/g, " ").trim().slice(0, 140), busy };
+    chats = [s, ...chats.filter((x) => x.id !== c.id)].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    if (sideTab === "chats") renderHistory();
+  }
+
+  // ----- Attachments: picked (📎), dropped on the chat, or pasted images -----
+  const MAX_FILES = 10;
+  let attaching = 0;
+  const thumbs = new Map();   // path → preview URL
+  async function thumb(img, path) {
+    let url = thumbs.get(path);
+    if (!url) {
+      url = await api.previewPath(path).catch(() => "");
+      if (/^(slpreview|http)/.test(url)) thumbs.set(path, url);
+    }
+    if (/^(slpreview|http)/.test(url)) img.src = url;
+    else img.closest(".att")?.classList.add("no-thumb");
+  }
+  // One attachment: an image thumbnail or a file card. `remove` (composer) adds the × button.
+  function fileTile(a, remove) {
+    const el = document.createElement(remove ? "div" : "button");
+    if (!remove) { el.type = "button"; el.title = a.name; el.addEventListener("click", () => openFile(a.path)); }
+    const ext = extOf(a.name);
+    if (a.kind === "image") {
+      el.className = "att img";
+      el.innerHTML = `<img alt="">`;
+      thumb(el.querySelector("img"), a.path);
+    } else {
+      el.className = "att file";
+      el.innerHTML = `${docGlyph(ext)}<span class="txt"><b></b><small></small></span>`;
+      el.querySelector(".txt b").textContent = a.name;
+      el.querySelector(".txt small").textContent = fmtSize(a.size);
+    }
+    if (remove) {
+      el.title = a.name;
+      const x = document.createElement("button");
+      x.type = "button"; x.className = "att-x"; x.setAttribute("aria-label", t("chat.unattach")); x.title = t("chat.unattach");
+      x.innerHTML = icon("x");
+      x.addEventListener("click", remove);
+      el.appendChild(x);
+    }
+    return el;
+  }
+  function paintFiles(d) {
+    const box = $("cmp-files");
+    box.textContent = "";
+    box.hidden = !d.files.length && !attaching;
+    d.files.forEach((a) => box.appendChild(fileTile(a, () => { d.files = d.files.filter((x) => x !== a); paintComposer(); focusComposer(); })));
+    if (attaching) {
+      const sp = document.createElement("div");
+      sp.className = "att busy";
+      sp.innerHTML = `<span class="r-spin"></span><small></small>`;
+      sp.querySelector("small").textContent = t("chat.attaching");
+      box.appendChild(sp);
+    }
+  }
+  async function attach(work) {
+    const d = draftOf();
+    attaching++;
+    paintComposer();
+    try {
+      const { files, errors } = await work();
+      const room = MAX_FILES - d.files.length;
+      d.files.push(...files.slice(0, Math.max(0, room)));
+      if (files.length > room) toast(t("chat.tooMany", { n: MAX_FILES }), null, "bad");
+      if (errors?.length) toast(errors.join(" · "), null, "bad");
+    } catch (e) {
+      toast(cleanErr(e), null, "bad");
+    } finally {
+      attaching--;
+      paintComposer();
+      focusComposer();
+    }
+  }
+  const attachPaths = (paths) => paths.length && attach(() => api.attachFiles(paths));
+  // Files without a path (pasted, or dragged from a browser): their bytes.
+  const attachBlobs = (list) => list.length && attach(async () => {
+    const files = [], errors = [];
+    for (const f of list) {
+      let name = f.name || "";
+      if (!name || /^image\.(png|jpe?g|gif|webp)$/i.test(name)) {
+        const ext = (f.type.split("/")[1] || "png").replace("jpeg", "jpg");
+        name = t("chat.pasted", { time: new Date().toLocaleTimeString(loc()).replace(/[:/]/g, "-") }) + "." + ext;
+      }
+      try { files.push(await api.attachData(name, new Uint8Array(await f.arrayBuffer()))); }
+      catch (e) { errors.push(cleanErr(e)); }
+    }
+    return { files, errors };
+  });
+  $("chat-clip").addEventListener("click", async () => attachPaths(await api.pickFiles()));
+  input.addEventListener("paste", (e) => {
+    const list = [...(e.clipboardData?.files || [])];
+    if (!list.length) return;
+    e.preventDefault();
+    attachBlobs(list);
+  });
+  // Dragging files over the chat: an overlay; the drop attaches them (wired with the page's file drops).
+  function chatDropShow(on) { $("chat-drop").hidden = !on; }
+
+  // ----- Voice: speak, the words go into the box; Enter sends -----
+  // The web view's speech recognition when it works (live text while you talk); otherwise the
+  // system's own dictation (macOS Dictation, Windows voice typing) types into the box.
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let voice = null;              // { rec, base, final }
+  let systemDictation = !SR || store.get("systemDictation", false);
+  function paintMic() {
+    const b = $("chat-mic");
+    b.classList.toggle("on", !!voice);
+    const label = t(voice ? "chat.micStop" : "chat.mic");
+    b.title = label + (voice ? "" : " (" + (navigator.platform.startsWith("Mac") ? "⌥Space" : "Alt+Space") + ")");
+    b.setAttribute("aria-label", label);
+    b.setAttribute("aria-pressed", String(!!voice));
+    $("composer").classList.toggle("listening", !!voice);
+    $("composer").querySelector(".cmp-hint").textContent = t(voice ? "chat.listening" : "chat.keys");
+  }
+  function setVoiceText(interim) {
+    const v = voice;
+    const sep = (a, b) => (a && b && !/\s$/.test(a) ? a + " " + b : a + b);
+    input.value = sep(sep(v.base, v.final), interim);
+    draftOf().text = input.value;
+    paintComposer();
+    input.setSelectionRange(input.value.length, input.value.length);
+    input.scrollTop = input.scrollHeight;
+  }
+  async function startVoice() {
+    input.focus();
+    if (systemDictation) return startSystemDictation();
+    const rec = new SR();
+    rec.lang = lang === "en" ? "en-US" : "vi-VN";
+    rec.continuous = true;
+    rec.interimResults = true;
+    voice = { rec, base: input.value, final: "" };
+    rec.onresult = (e) => {
+      if (voice?.rec !== rec) return;
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        if (r.isFinal) voice.final += (voice.final && !/\s$/.test(voice.final) ? " " : "") + r[0].transcript.trim();
+        else interim += r[0].transcript;
+      }
+      setVoiceText(interim.trim());
+    };
+    rec.onerror = (e) => {
+      if (voice?.rec !== rec) return;
+      voice = null; paintMic();
+      if (["service-not-allowed", "not-allowed", "audio-capture", "network", "language-not-supported"].includes(e.error)) {
+        // This web view can't (or may not) listen: use the system's dictation from now on.
+        if (e.error !== "not-allowed") { systemDictation = true; store.set("systemDictation", true); }
+        if (e.error === "not-allowed") toast(t("chat.micDenied"), null, "bad");
+        else startSystemDictation();
+      } else if (e.error !== "no-speech" && e.error !== "aborted") toast(t("chat.micError", { msg: e.error }), null, "bad");
+    };
+    rec.onend = () => { if (voice?.rec === rec) { setVoiceText(""); voice = null; paintMic(); } };
+    try { rec.start(); } catch (e) { voice = null; systemDictation = true; return startSystemDictation(); }
+    paintMic();
+  }
+  function stopVoice() {
+    const v = voice;
+    if (!v) return;
+    voice = null;
+    try { v.rec.stop(); } catch { /* already stopped */ }
+    paintMic();
+  }
+  async function startSystemDictation() {
+    input.focus();
+    try {
+      await api.dictate();
+      if (!store.get("dictationTip", false)) {
+        toast(t(navigator.platform.startsWith("Mac") ? "chat.dictationMac" : "chat.dictationWin"));
+        store.set("dictationTip", true);
+      }
+    } catch (e) {
+      toast(t("chat.micError", { msg: cleanErr(e) }), null, "bad");
+    }
+  }
+  $("chat-mic").addEventListener("click", () => (voice ? stopVoice() : startVoice()));
+  // ⌥Space / Alt+Space in the box: start or stop talking.
+  input.addEventListener("keydown", (e) => {
+    if (e.code === "Space" && e.altKey && !e.metaKey && !e.ctrlKey) { e.preventDefault(); voice ? stopVoice() : startVoice(); }
+  });
+
+  // ----- @ picker: projects and notebooks matching what follows the "@" -----
+  function mentionQuery() {
+    const pos = input.selectionStart, v = input.value.slice(0, pos);
+    const m = /(^|\s)@([^@\n]{0,40})$/.exec(v);
+    return m ? { at: pos - m[2].length - 1, q: m[2] } : null;
+  }
+  function updatePicker() {
+    const mq = document.activeElement === input || pickerState ? mentionQuery() : null;
+    if (!mq) return closePicker();
+    const q = fold(mq.q.trim());
+    const score = (title) => { const f = fold(title); return !q ? 1 : f.startsWith(q) ? 3 : f.includes(q) ? 2 : 0; };
+    const items = [
+      ...projects.map((p) => ({ kind: "project", x: p, s: score(p.name) })),
+      ...history.filter((h) => h.status === "done").map((h) => ({ kind: "notebook", x: h, s: score(h.title) })),
+    ].filter((it) => it.s > 0);
+    if (!items.length || (/\s{2}$/.test(mq.q))) return closePicker();
+    items.sort((a, b) => b.s - a.s);
+    const list = items.slice(0, 8);
+    pickerState = { ...mq, items: list, i: Math.min(pickerState?.i ?? 0, list.length - 1) };
+    paintPicker();
+  }
+  function paintPicker() {
+    const pop = $("mention-pop");
+    pop.hidden = false;
+    pop.innerHTML = `<div class="mp-head">${esc(t("chat.pickHead"))}</div>`;
+    pickerState.items.forEach((it, k) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "mp-item" + (k === pickerState.i ? " on" : "");
+      b.setAttribute("role", "option");
+      const isP = it.kind === "project";
+      const sub = isP ? t("pj.count", { n: notesOf(it.x.id).length }) : (projOf(it.x.projectId)?.name || t("lib.loose")) + " · " + t("fmt." + fmtOf(it.x.options));
+      b.innerHTML = `${isP ? folderTile(it.x, "sm") : tileHTML(it.x.title, "sm")}<span class="txt"><b></b><small></small></span><span class="mp-kind">${esc(t(isP ? "chat.kindProject" : "chat.kindNote"))}</span>`;
+      b.querySelector("b").textContent = isP ? it.x.name : it.x.title;
+      b.querySelector("small").textContent = sub;
+      b.addEventListener("mousedown", (e) => { e.preventDefault(); choose(it); });
+      b.addEventListener("mousemove", () => { if (pickerState && pickerState.i !== k) { pickerState.i = k; paintPicker(); } });
+      pop.appendChild(b);
+    });
+    pop.querySelector(".mp-item.on")?.scrollIntoView({ block: "nearest" });
+  }
+  function choose(it) {
+    if (!pickerState || !it) return;
+    const m = mentionOf(it.kind, it.x);
+    const d = draftOf();
+    const end = pickerState.at + 1 + pickerState.q.length;
+    const token = "@" + m.title + " ";
+    input.setRangeText(token, pickerState.at, end, "end");
+    d.text = input.value;
+    if (!d.mentions.some((x) => x.kind === m.kind && x.id === m.id)) d.mentions.push(m);
+    closePicker();
+    paintComposer();
+    input.focus();
+  }
+  function closePicker() {
+    pickerState = null;
+    $("mention-pop").hidden = true;
+  }
+
+  // ----- Live updates -----
+  api.onChatStream((p) => {
+    // A tool line ("Reading …") shows until the answer's text starts coming again.
+    live.set(p.msgId, { text: p.text, activity: p.activity || "" });
+    if (page !== "chat" || selected !== p.chatId) return;
+    const el = $("chat-thread").querySelector(`.msg[data-id="${CSS.escape(p.msgId)}"]`);
+    const c = chatCache.get(p.chatId);
+    const m = c?.messages.find((x) => x.id === p.msgId);
+    if (!el || !m) return;
+    paintAnswer(el, m, c);
+    scrollChat();
+  });
+  api.onChat((c) => {
+    if (c.removed) {
+      chatCache.delete(c.id);
+      chats = chats.filter((x) => x.id !== c.id);
+      if (page === "chat" && selected === c.id) show("chat", null);
+      else if (sideTab === "chats") renderHistory();
+      return;
+    }
+    const busy = c.messages.some((m) => m.status === "streaming");
+    c.messages.forEach((m) => { if (m.status !== "streaming") live.delete(m.id); });
+    chatCache.set(c.id, c);
+    upsertSummary(c, busy);
+    if (page === "chat" && selected === c.id) {
+      renderChat(false);
+      scrollChat();
+    }
+  });
+
+
   // ---------- Dev hooks for the screenshot mode (STUDYLENS_SHOOT, driven by scripts/shoot.js) ----------
   window.__test = {
     history: () => {
@@ -2174,6 +2955,7 @@
     setSeg("side-tab", sideTab);
     booted = true;
     await loadHistory();
+    loadChats();
     checkAI();
   })();
 })();
