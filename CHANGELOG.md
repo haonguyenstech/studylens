@@ -5,6 +5,7 @@
 - Much smaller and lighter: StudyLens now runs on Tauri (Rust + the system's own web view) instead of Electron. The installer is about 5 MB on macOS (was 100 MB) and 4 MB on Windows (was 83 MB); the app starts faster and uses less memory.
 - Everything carries over: settings, projects, notebooks, run history and unfinished runs stay where they were and open as before.
 - Updating from 0.2: the app updates itself as usual. On Windows the installer removes the old 0.2 copy (its files and shortcuts) and keeps your data.
+- First launch: the app isn't signed with a paid developer certificate, so macOS ("Apple could not verify…") and Windows (SmartScreen) warn once. The README's [If macOS or Windows blocks it](https://github.com/haonguyenstech/studylens#if-macos-or-windows-blocks-it) has step-by-step help for each message, including macOS's "damaged" one.
 - Windows needs the Microsoft Edge WebView2 runtime, built into Windows 11 and current Windows 10; the installer fetches it if it is missing.
 
 ## 0.2.0

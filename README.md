@@ -23,7 +23,7 @@ Every line explained, every spec analysed, every WBS mapped — and every number
   &nbsp;
   <a href="https://github.com/haonguyenstech/studylens/releases/latest/download/StudyLens-Setup-win-x64.exe"><img alt="Download for Windows" src="https://img.shields.io/badge/Download_for_Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white" height="40" /></a>
 </p>
-<sub>macOS button is for Apple silicon (M1 or later) · <a href="https://github.com/haonguyenstech/studylens/releases/latest/download/StudyLens-mac-x64.dmg">Intel Mac</a> · <a href="https://github.com/haonguyenstech/studylens/releases/latest">all downloads</a></sub>
+<sub>macOS button is for Apple silicon (M1 or later) · <a href="https://github.com/haonguyenstech/studylens/releases/latest/download/StudyLens-mac-x64.dmg">Intel Mac</a> · <a href="https://github.com/haonguyenstech/studylens/releases/latest">all downloads</a><br />First launch shows a warning because the app isn't signed with a paid developer certificate: <a href="#if-macos-or-windows-blocks-it">how to open it</a></sub>
 
 <br /><br />
 
@@ -104,7 +104,69 @@ Use the download buttons at the top, or pick a file from the **[latest release](
 | macOS, Intel | [StudyLens-mac-x64.dmg](https://github.com/haonguyenstech/studylens/releases/latest/download/StudyLens-mac-x64.dmg) |
 | Windows 10/11 (x64) | [StudyLens-Setup-win-x64.exe](https://github.com/haonguyenstech/studylens/releases/latest/download/StudyLens-Setup-win-x64.exe) |
 
-The app is not code-signed. On macOS, the first time it says Apple could not verify it: open **System Settings → Privacy & Security** and click **Open Anyway** (or run `xattr -cr /Applications/StudyLens.app`). On Windows, SmartScreen may warn: **More info → Run anyway**. After that, StudyLens updates itself.
+On macOS, open the `.dmg` and drag **StudyLens** onto **Applications**. On Windows, run the installer; it installs for your account only (no admin rights needed) and adds StudyLens to the Start menu.
+
+> [!NOTE]
+> StudyLens is free and not signed with a paid Apple / Microsoft developer certificate, so the first launch shows a warning. That is expected; the steps below get past it **once**, and from then on StudyLens updates itself without asking again.
+
+### If macOS or Windows blocks it
+
+<details>
+<summary><b>macOS: "Apple could not verify StudyLens is free of malware…" / "cannot be opened"</b></summary>
+
+1. Click **Done** (or **OK**) in the warning. Don't move it to the Trash.
+2. Open **System Settings → Privacy & Security**, scroll down to **Security**: there is a line *"StudyLens" was blocked to protect your Mac*. Click **Open Anyway**.
+3. Enter your password (or Touch ID), then click **Open Anyway** once more.
+
+On macOS 14 (Sonoma) or earlier you can instead right-click StudyLens in **Applications → Open → Open**.
+
+</details>
+
+<details>
+<summary><b>macOS: "StudyLens.app is damaged and can't be opened. You should move it to the Trash."</b></summary>
+
+macOS says this about apps downloaded from the internet that aren't notarized (and about broken downloads). Make sure StudyLens is in **Applications**, then open **Terminal** and run:
+
+```bash
+xattr -cr /Applications/StudyLens.app
+```
+
+Then open StudyLens as usual. If it still says *damaged*, delete it, download the `.dmg` again (from the [latest release](https://github.com/haonguyenstech/studylens/releases/latest)) and repeat. The very first 0.3.1 macOS downloads (15 Oct 2026, before about 10:00 UTC+7) had a broken signature; a fresh download fixes that.
+
+Check which chip you have under  → **About This Mac**: *Apple M…* takes the Apple silicon `.dmg`, *Intel* the Intel one.
+
+</details>
+
+<details>
+<summary><b>Windows: "Windows protected your PC" (blue SmartScreen window)</b></summary>
+
+Click **More info**, then **Run anyway**. The installer starts as normal.
+
+</details>
+
+<details>
+<summary><b>Windows: the browser won't keep the download</b></summary>
+
+- **Edge** — *"StudyLens-Setup-win-x64.exe isn't commonly downloaded"*: open the downloads list (Ctrl+J), hover the file → **⋯ → Keep**, then **Show more → Keep anyway**.
+- **Chrome** — *"… may be dangerous"* or *"suspicious download blocked"*: open the downloads list (Ctrl+J) and choose **Keep** / **Download suspicious file**.
+
+</details>
+
+<details>
+<summary><b>Windows: blocked with no "Run anyway" (Smart App Control, antivirus)</b></summary>
+
+- **Smart App Control** (Windows 11, *Windows Security → App & browser control*) blocks every unsigned app and has no per-app exception. Run the installer on a PC where it is *Off* or *Evaluation*, or turn it off there (once off, it can't be turned back on without resetting Windows, so decide carefully).
+- **Antivirus** (Defender or another): if it quarantines the installer, restore it from the antivirus's history / quarantine and allow it, or download it again from the [latest release](https://github.com/haonguyenstech/studylens/releases/latest). You can compare the file with the SHA-256 shown next to it on the release page: `Get-FileHash .\StudyLens-Setup-win-x64.exe` in PowerShell.
+- Work PCs may forbid unsigned apps by policy; ask your IT team.
+
+</details>
+
+<details>
+<summary><b>Windows: the window stays blank or StudyLens won't start</b></summary>
+
+StudyLens draws its window with Microsoft Edge **WebView2**, built into Windows 11 and up-to-date Windows 10. The installer fetches it when missing; if that failed (no internet during setup), install the *Evergreen Bootstrapper* from [Microsoft's WebView2 page](https://developer.microsoft.com/microsoft-edge/webview2/) and start StudyLens again.
+
+</details>
 
 ### Build & run
 
