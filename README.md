@@ -104,7 +104,7 @@ Use the download buttons at the top, or pick a file from the **[latest release](
 | macOS, Intel | [StudyLens-mac-x64.dmg](https://github.com/haonguyenstech/studylens/releases/latest/download/StudyLens-mac-x64.dmg) |
 | Windows 10/11 (x64) | [StudyLens-Setup-win-x64.exe](https://github.com/haonguyenstech/studylens/releases/latest/download/StudyLens-Setup-win-x64.exe) |
 
-The app is not code-signed. On macOS, the first time: right-click the app → **Open** (or run `xattr -cr /Applications/StudyLens.app`). On Windows, SmartScreen may warn: **More info → Run anyway**. After that, StudyLens updates itself.
+The app is not code-signed. On macOS, the first time it says Apple could not verify it: open **System Settings → Privacy & Security** and click **Open Anyway** (or run `xattr -cr /Applications/StudyLens.app`). On Windows, SmartScreen may warn: **More info → Run anyway**. After that, StudyLens updates itself.
 
 ### Build & run
 
